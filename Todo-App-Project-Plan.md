@@ -114,6 +114,8 @@ The senior's answers to the eight open questions were all "go with your own sugg
 | D-14 | **Deploy the mock-mode build** as a static demo, so the reviewer can click a link | Faster review, proves the build works in production mode | Senior says a demo is not wanted |
 | D-15 | **npm**, lockfile committed | Default tooling | Team standard is different |
 | D-16 | **Access token is opaque to the frontend.** Never decode it to make decisions. | Authorization belongs to the server | None |
+| D-17 | **`eslint-plugin-jsx-a11y-x`** (es-tooling fork) instead of `eslint-plugin-jsx-a11y`, on **ESLint 10** | The original plugin's last release (6.10.2, Oct 2024) only supports ESLint up to 9, and ESLint 9 is end-of-life. The fork is a drop-in with the same rules and supports ESLint 10. | The original plugin ships ESLint 10 support |
+| D-18 | **Accept the current major versions** installed in Phase 1: TypeScript 6, Vite 8, Vitest 5, **React Router 8** (plan says v7), **MSW 3** (plan says v2), Zod 4 | Fresh project, no reason to start on older majors. The APIs the plan relies on (`createBrowserRouter`, `setupWorker`/`setupServer`, `HttpResponse`) still exist; verify details when Phase 2 and Phase 3 start. | An API used by the plan turns out to be removed |
 
 ---
 
@@ -1130,10 +1132,10 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 **Goal:** everyone agrees on what is being built.
 
 - [ ] Send this plan, or a summary of sections 2 to 4, to your senior. Confirm the deadline and whether one PR is acceptable.
-- [ ] Create the GitHub repository. Add a short README placeholder.
-- [ ] Create the feature branch `feature/todo-auth-frontend`.
-- [ ] Create `docs/api-contract.md` from section 8 of this plan.
-- [ ] Copy the decision log (section 2) into the README, or link to it.
+- [ ] Create the GitHub repository. Add a short README placeholder. (README done, local git repo created; GitHub remote still to add)
+- [x] Create the feature branch `feature/todo-auth-frontend`.
+- [x] Create `docs/api-contract.md` from section 8 of this plan.
+- [x] Copy the decision log (section 2) into the README, or link to it.
 
 **Exit criteria:** the contract file exists, and your senior has seen the plan.
 
@@ -1143,20 +1145,20 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 
 **Goal:** an empty app that builds, lints, type-checks and tests cleanly.
 
-- [ ] Check `node -v` (20.19+ or 22.12+). Install a newer Node if needed.
-- [ ] Scaffold with Vite (section 6.3). Choose plain TypeScript, not the React Compiler variant.
-- [ ] Run `npm install`, then `npm run dev`, and confirm the starter page opens.
-- [ ] Set up `.gitignore` (add `.env` and `.env.local`). Make the first commit.
-- [ ] Install runtime and development dependencies (section 6.3).
-- [ ] Configure TypeScript (section 6.6): strict flags, the `@/` alias, `vitest/globals` types.
-- [ ] Configure `vite.config.ts` with React, Tailwind and Vitest (section 6.6).
-- [ ] Add `@import "tailwindcss";` to `src/index.css` and confirm a Tailwind class works.
-- [ ] Add `eslint-plugin-jsx-a11y` to the ESLint config. Add Prettier, `eslint-config-prettier`, and a `.prettierrc`.
-- [ ] Add the npm scripts from section 6.5.
-- [ ] Create `.env.example` and `.env.demo`, and the Zod env validation module `src/lib/env.ts`.
-- [ ] Create `src/test/setup.ts` (section 13.2) with a single trivial test, to confirm Vitest runs.
-- [ ] Create the empty folder skeleton (section 7.1).
-- [ ] Delete the Vite starter content (logo, counter demo, `App.css`).
+- [x] Check `node -v` (20.19+ or 22.12+). Install a newer Node if needed.
+- [x] Scaffold with Vite (section 6.3). Choose plain TypeScript, not the React Compiler variant.
+- [x] Run `npm install`, then `npm run dev`, and confirm the starter page opens.
+- [x] Set up `.gitignore` (add `.env` and `.env.local`). Make the first commit.
+- [x] Install runtime and development dependencies (section 6.3).
+- [x] Configure TypeScript (section 6.6): strict flags, the `@/` alias, `vitest/globals` types.
+- [x] Configure `vite.config.ts` with React, Tailwind and Vitest (section 6.6).
+- [x] Add `@import "tailwindcss";` to `src/index.css` and confirm a Tailwind class works.
+- [x] Add `eslint-plugin-jsx-a11y` to the ESLint config. Add Prettier, `eslint-config-prettier`, and a `.prettierrc`.
+- [x] Add the npm scripts from section 6.5.
+- [x] Create `.env.example` and `.env.demo`, and the Zod env validation module `src/lib/env.ts`.
+- [x] Create `src/test/setup.ts` (section 13.2) with a single trivial test, to confirm Vitest runs.
+- [x] Create the empty folder skeleton (section 7.1).
+- [x] Delete the Vite starter content (logo, counter demo, `App.css`).
 
 **Commits:** items 1 to 4 from section 14.3.
 
