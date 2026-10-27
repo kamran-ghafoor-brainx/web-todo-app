@@ -13,13 +13,14 @@ import { tokenStorage } from "@/lib/tokenStorage";
 export const bootstrapSession = createAppAsyncThunk<User | null, void>(
   "auth/bootstrapSession",
   async (_, { rejectWithValue }) => {
-    if (!tokenStorage.get()) return null;
+    const token = tokenStorage.get();
+    if (!token) return null;
 
     try {
       return await authApi.me();
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
-        tokenStorage.clear();
+        if (tokenStorage.get() === token) tokenStorage.clear();
         return null;
       }
       return rejectWithValue(getErrorMessage(error));

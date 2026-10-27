@@ -4,14 +4,14 @@ import { StrictMode } from "react";
 import { Provider } from "react-redux";
 import { createMemoryRouter, RouterProvider, type InitialEntry } from "react-router";
 import { routes } from "@/app/router";
-import { registerSessionListeners } from "@/app/sessionListeners";
+import { startSession } from "@/app/sessionListeners";
 import { makeStore } from "@/app/store";
 import { ToastProvider } from "@/components/toast/ToastProvider";
 
-/** Renders the whole route tree at `entry` with a fresh store, like the real app. */
+/** Renders the whole route tree at `entry` with a fresh store and session start-up, like the real app. */
 export function renderApp(entry: InitialEntry, { strict = false } = {}) {
   const store = makeStore();
-  onTestFinished(registerSessionListeners(store));
+  onTestFinished(startSession(store));
   const router = createMemoryRouter(routes, { initialEntries: [entry] });
   const app = (
     <Provider store={store}>

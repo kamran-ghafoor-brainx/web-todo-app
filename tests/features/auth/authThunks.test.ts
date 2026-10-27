@@ -88,6 +88,56 @@ describe("bootstrapSession (T-U08)", () => {
   });
 });
 
+describe("a login that finishes before the startup check", () => {
+  async function storeWithSlowStartupCheck(meResponse: () => Response) {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    server.use(
+      mswHttp.get("/api/auth/me", async () => {
+        await gate;
+        return meResponse();
+      }),
+    );
+    const store = makeStore();
+    const bootstrapping = store.dispatch(bootstrapSession());
+    return { store, finishStartupCheck: () => (release(), bootstrapping) };
+  }
+
+  it("keeps the new login when the old token turns out to be invalid", async () => {
+    tokenStorage.set("mock.stale-token");
+    const { store, finishStartupCheck } = await storeWithSlowStartupCheck(() =>
+      HttpResponse.json({}, { status: 401 }),
+    );
+
+    const user = await store.dispatch(login(demo)).unwrap();
+    const newToken = tokenStorage.get();
+    await finishStartupCheck();
+
+    expect(store.getState().auth).toMatchObject({ status: "authenticated", user });
+    expect(tokenStorage.get()).toBe(newToken);
+  });
+
+  it("keeps the new login when the old token belongs to another account", async () => {
+    tokenStorage.set("mock.other-account-token");
+    const otherAccount = {
+      id: "other",
+      name: "Old Account",
+      email: "old@example.com",
+      isEmailVerified: true,
+    };
+    const { store, finishStartupCheck } = await storeWithSlowStartupCheck(() =>
+      HttpResponse.json(otherAccount),
+    );
+
+    const user = await store.dispatch(login(demo)).unwrap();
+    await finishStartupCheck();
+
+    expect(store.getState().auth.user).toEqual(user);
+  });
+});
+
 describe("login (T-U08)", () => {
   it("stores the token and the user on success", async () => {
     const store = makeStore({ auth: { ...initialAuthState, status: "unauthenticated" } });

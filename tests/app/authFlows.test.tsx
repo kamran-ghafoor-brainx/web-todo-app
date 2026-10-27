@@ -98,11 +98,12 @@ describe("journeys (end to end against the mock backend)", () => {
     await app.user.click(screen.getByRole("link", { name: messages.verifyEmail.goToLogin }));
     await logIn(app.user, "New.User@example.com", "secret12");
 
-    expect(await findHeading(messages.home.welcome("Ann Lee"))).toBeVisible();
+    expect(await findHeading(messages.todosPage.title)).toBeVisible();
+    expect(screen.getByText("Ann Lee")).toBeVisible();
     expect(app.path()).toBe("/todos");
     expect(tokenStorage.get()).toMatch(/^mock\./);
 
-    await app.user.click(screen.getByRole("button", { name: messages.home.logout }));
+    await app.user.click(screen.getByRole("button", { name: messages.session.logout }));
     expect(await screen.findByText(messages.auth.loggedOut)).toBeVisible();
     expect(app.path()).toBe("/login");
     expect(tokenStorage.get()).toBeNull();
@@ -121,7 +122,7 @@ describe("journeys (end to end against the mock backend)", () => {
     expect(app.path()).toBe("/login");
 
     await logIn(app.user, "demo@example.com", "brandNew99");
-    expect(await findHeading(messages.home.welcome("Demo User"))).toBeVisible();
+    expect(await findHeading(messages.todosPage.title)).toBeVisible();
   });
 });
 
@@ -284,8 +285,8 @@ describe("login (T-C05)", () => {
 
     await logIn(user, "demo@example.com", "Passw0rd!");
 
-    expect(await findHeading(messages.home.welcome("Demo User"))).toBeVisible();
-    expect(screen.getByText(messages.home.signedInAs("demo@example.com"))).toBeVisible();
+    expect(await findHeading(messages.todosPage.title)).toBeVisible();
+    expect(screen.getByRole("banner")).toHaveTextContent("Demo User");
     expect(path()).toBe("/todos");
   });
 
@@ -316,9 +317,10 @@ describe("login (T-C05)", () => {
     expect(tokenStorage.get()).toBeNull();
   });
 
-  it("sends a visitor without a token from /todos to login", () => {
+  it("sends a visitor without a token from /todos to login, with no notice", async () => {
     const { path } = renderApp("/todos");
-    expect(path()).toBe("/login");
+    await waitFor(() => expect(path()).toBe("/login"));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("ignores unknown navigation state instead of showing it", () => {

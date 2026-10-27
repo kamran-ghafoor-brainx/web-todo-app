@@ -33,6 +33,7 @@ export type {
 } from "@/features/auth/authSchemas";
 
 export {
+  loginStateAfterSessionEnd,
   readLoginNotice,
   type LoginLocationState,
   type LoginNotice,

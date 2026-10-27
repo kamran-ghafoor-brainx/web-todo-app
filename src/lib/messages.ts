@@ -161,14 +161,18 @@ export const messages = {
     alreadyGone: "This todo no longer exists. It may have been deleted somewhere else.",
   },
 
-  home: {
-    loading: "Loading your account",
+  session: {
+    checking: "Checking your session",
     loadFailedTitle: "Couldn't load your account",
-    welcome: (name: string) => `Welcome, ${name}`,
-    signedInAs: (email: string) => `You're logged in as ${email}.`,
-    comingSoon: "Your todo list arrives in the next phase of the project.",
+    retry: "Try again",
     logout: "Log out",
     loggingOut: "Logging out…",
+    signedInAs: (name: string) => `Signed in as ${name}`,
+  },
+
+  todosPage: {
+    title: "My todos",
+    loading: "Loading your todos",
   },
 
   notFound: {

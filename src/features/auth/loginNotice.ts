@@ -1,3 +1,4 @@
+import type { SessionEndReason } from "@/app/actions";
 import { messages } from "@/lib/messages";
 
 const LOGIN_NOTICES = {
@@ -18,4 +19,15 @@ export function readLoginNotice(state: unknown): ResolvedLoginNotice | null {
   return typeof notice === "string" && Object.hasOwn(LOGIN_NOTICES, notice)
     ? LOGIN_NOTICES[notice as LoginNotice]
     : null;
+}
+
+const NOTICE_BY_END_REASON = {
+  loggedOut: "loggedOut",
+  expired: "sessionExpired",
+} as const satisfies Record<SessionEndReason, LoginNotice>;
+
+export function loginStateAfterSessionEnd(
+  reason: SessionEndReason | null,
+): LoginLocationState | undefined {
+  return reason ? { notice: NOTICE_BY_END_REASON[reason] } : undefined;
 }

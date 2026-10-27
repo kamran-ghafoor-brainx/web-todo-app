@@ -31,11 +31,14 @@ export const authSlice = createSlice({
       .addCase(bootstrapSession.pending, (state) => {
         state.bootstrapError = null;
       })
+      // A login or session end may have decided the session first; a late startup answer is stale.
       .addCase(bootstrapSession.fulfilled, (state, action) => {
+        if (state.status !== "unknown") return;
         state.user = action.payload;
         state.status = action.payload ? "authenticated" : "unauthenticated";
       })
       .addCase(bootstrapSession.rejected, (state, action) => {
+        if (state.status !== "unknown") return;
         state.bootstrapError = action.payload ?? messages.errors.server;
       })
       .addCase(login.fulfilled, (state, action) => {

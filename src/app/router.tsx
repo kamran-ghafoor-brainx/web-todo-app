@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate, type RouteObject } from "react-router";
+import { AppLayout } from "@/app/layouts/AppLayout";
 import { AuthLayout } from "@/app/layouts/AuthLayout";
 import { PageLoading } from "@/components/PageLoading";
 import { env } from "@/lib/env";
@@ -24,6 +25,11 @@ const devRoutes: RouteObject[] = env.VITE_USE_MOCK
 
 export const routes: RouteObject[] = [
   {
+    element: <AppLayout />,
+    errorElement: <RouteErrorPage />,
+    children: [{ path: PATHS.todos, element: <TodosPage /> }],
+  },
+  {
     element: <AuthLayout />,
     errorElement: <RouteErrorPage />,
     children: [
@@ -35,7 +41,6 @@ export const routes: RouteObject[] = [
           { path: PATHS.verifyEmail, element: <VerifyEmailPage /> },
           { path: PATHS.forgotPassword, element: <ForgotPasswordPage /> },
           { path: PATHS.resetPassword, element: <ResetPasswordPage /> },
-          { path: PATHS.todos, element: <TodosPage /> },
           ...devRoutes,
           { path: "*", element: <NotFoundPage /> },
         ],
