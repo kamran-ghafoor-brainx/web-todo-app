@@ -9,11 +9,8 @@ import { server } from "@/mocks/server";
 import { TodosPage } from "@/pages/TodosPage";
 import { renderWithProviders } from "@tests/utils/renderWithProviders";
 
-async function renderAsDemo() {
-  const { accessToken, user } = await authApi.login({
-    email: MAGIC_EMAILS.demo,
-    password: MAGIC_PASSWORD,
-  });
+async function renderAsDemo(email: string = MAGIC_EMAILS.demo) {
+  const { accessToken, user } = await authApi.login({ email, password: MAGIC_PASSWORD });
   tokenStorage.set(accessToken);
   return renderWithProviders(<TodosPage />, {
     route: "/todos",
@@ -21,7 +18,7 @@ async function renderAsDemo() {
   });
 }
 
-describe("TodosPage (D1, D2)", () => {
+describe("TodosPage (D1, D2, E1)", () => {
   it("has the page heading and tab title", async () => {
     await renderAsDemo();
 
@@ -61,6 +58,26 @@ describe("TodosPage (D1, D2)", () => {
         .map((item) => item.textContent),
     ).toEqual(["Call the dentist"]);
     expect(screen.getByRole("link", { name: /^All/ })).toHaveTextContent("5");
+  });
+
+  it("adds a todo from the form to the top of the list", async () => {
+    const { user } = await renderAsDemo();
+    await screen.findByText("Plan the week");
+
+    await user.type(screen.getByRole("textbox", { name: messages.todoForm.title }), "New one");
+    await user.click(screen.getByRole("button", { name: messages.todoForm.add }));
+
+    const list = screen.getByRole("list", { name: messages.todoList.label });
+    expect(await within(list).findByText("New one")).toBeVisible();
+    expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent("New one");
+  });
+
+  it("moves a new user from 'Add your first todo' into the title field", async () => {
+    const { user } = await renderAsDemo(MAGIC_EMAILS.shortlived);
+
+    await user.click(await screen.findByRole("button", { name: messages.todoList.addFirst }));
+
+    expect(screen.getByRole("textbox", { name: messages.todoForm.title })).toHaveFocus();
   });
 
   it("shows a readable error when the list cannot load", async () => {

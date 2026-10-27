@@ -189,6 +189,16 @@ export const messages = {
     showAll: "Show all todos",
   },
 
+  todoForm: {
+    title: "Title",
+    description: "Description (optional)",
+    dueDate: "Due date (optional)",
+    descriptionCount: (length: number, max: number) => `${length} / ${max} characters`,
+    addHeading: "Add a todo",
+    add: "Add todo",
+    adding: "Adding…",
+  },
+
   todoFilters: {
     label: "Filter todos",
     all: "All",
