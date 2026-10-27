@@ -1,4 +1,5 @@
 import { authApi } from "@/features/auth";
+import { todosApi } from "@/features/todos/todosApi";
 import type { Todo } from "@/features/todos/types";
 import { ApiError } from "@/lib/ApiError";
 import { http } from "@/lib/http";
@@ -21,11 +22,11 @@ async function logInAs(email: string) {
   tokenStorage.set(accessToken);
 }
 
-const listTodos = () => http.get<Todo[]>("/todos");
-const getTodo = (id: string) => http.get<Todo>(`/todos/${id}`);
+const listTodos = todosApi.list;
+const getTodo = todosApi.get;
+const deleteTodo = todosApi.remove;
 const createTodo = (body: unknown) => http.post<Todo>("/todos", body);
 const updateTodo = (id: string, body: unknown) => http.patch<Todo>(`/todos/${id}`, body);
-const deleteTodo = (id: string) => http.delete(`/todos/${id}`);
 
 async function firstDemoTodo(): Promise<Todo> {
   await logInAs(MAGIC_EMAILS.demo);
@@ -238,6 +239,26 @@ describe("PATCH /todos/:id", () => {
       status: 500,
     });
     expect(await getTodo(todo.id)).toEqual(todo);
+  });
+});
+
+describe("todosApi (C3)", () => {
+  it("creates, reads, updates and deletes through one function per endpoint", async () => {
+    await logInAs(MAGIC_EMAILS.demo);
+
+    const created = await todosApi.create({ title: "Through the API", dueDate: "2026-12-01" });
+    expect(await todosApi.get(created.id)).toEqual(created);
+
+    const updated = await todosApi.update(created.id, { isCompleted: true });
+    expect(updated.isCompleted).toBe(true);
+
+    await todosApi.remove(created.id);
+    expect((await todosApi.list()).some((todo) => todo.id === created.id)).toBe(false);
+  });
+
+  it("escapes the id, so it can never reach another path", async () => {
+    await logInAs(MAGIC_EMAILS.demo);
+    expect(await apiErrorOf(todosApi.get("../auth/me"))).toMatchObject({ status: 404 });
   });
 });
 

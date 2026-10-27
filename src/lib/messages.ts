@@ -157,6 +157,10 @@ export const messages = {
     resetDone: "Mock data reset. Only the test accounts remain, and the mailbox is empty.",
   },
 
+  todos: {
+    alreadyGone: "This todo no longer exists. It may have been deleted somewhere else.",
+  },
+
   home: {
     loading: "Loading your account",
     loadFailedTitle: "Couldn't load your account",

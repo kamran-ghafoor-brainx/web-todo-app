@@ -6,9 +6,11 @@ import {
 } from "@reduxjs/toolkit";
 import { sessionEnded } from "@/app/actions";
 import { authSlice } from "@/features/auth/authSlice";
+import { todosSlice } from "@/features/todos/todosSlice";
 
 const appReducer = combineReducers({
   [authSlice.reducerPath]: authSlice.reducer,
+  [todosSlice.reducerPath]: todosSlice.reducer,
 });
 
 /** Runs the wrapped reducer with `undefined` state on `sessionEnded`, so every slice resets. */

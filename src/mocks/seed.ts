@@ -1,3 +1,4 @@
+import { toDateOnly } from "@/features/todos/dates";
 import { MAGIC_EMAILS, MAGIC_PASSWORD, MINUTE, MOCK_DB_VERSION } from "@/mocks/config";
 import type { MockDbState, MockTodo, MockUser } from "@/mocks/db";
 import { createPasswordRecord, newId } from "@/mocks/security";
@@ -49,13 +50,6 @@ const DEMO_TODOS: SeedTodo[] = [
     dueInDays: null,
   },
 ];
-
-function toDateOnly(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function dateOnlyInDays(days: number, now: Date): string {
   const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
