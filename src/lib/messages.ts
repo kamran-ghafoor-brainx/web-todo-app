@@ -172,8 +172,21 @@ export const messages = {
 
   todosPage: {
     title: "My todos",
+  },
+
+  todoList: {
+    label: "Your todos",
     loading: "Loading your todos",
-    listLabel: "Your todos",
+    retry: "Try again",
+    emptyTitle: "No todos yet",
+    emptyDescription: "Add your first todo to start planning your day.",
+    addFirst: "Add your first todo",
+    noMatchTitle: "No todos match this filter",
+    noMatchDescription: {
+      active: "You have no active todos. Nice work!",
+      completed: "You haven't completed any todos yet.",
+    },
+    showAll: "Show all todos",
   },
 
   todoFilters: {

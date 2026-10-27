@@ -32,9 +32,9 @@ describe("TodosPage (D1, D2)", () => {
   it("loads the user's todos and lists them newest first", async () => {
     await renderAsDemo();
 
-    expect(screen.getByRole("img", { name: messages.todosPage.loading })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(messages.todoList.loading);
     expect(await screen.findByText("Plan the week")).toBeVisible();
-    const list = screen.getByRole("list", { name: messages.todosPage.listLabel });
+    const list = screen.getByRole("list", { name: messages.todoList.label });
     expect(
       within(list)
         .getAllByRole("listitem")
@@ -54,7 +54,7 @@ describe("TodosPage (D1, D2)", () => {
 
     await user.click(screen.getByRole("link", { name: /^Completed/ }));
 
-    const list = screen.getByRole("list", { name: messages.todosPage.listLabel });
+    const list = screen.getByRole("list", { name: messages.todoList.label });
     expect(
       within(list)
         .getAllByRole("listitem")
