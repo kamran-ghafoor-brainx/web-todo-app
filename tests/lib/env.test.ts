@@ -1,6 +1,5 @@
 import { parseEnv } from "@/lib/env";
 
-// T-U05 (env part): the app fails fast on a missing or invalid environment (EC-76)
 describe("parseEnv", () => {
   it("parses valid values and converts VITE_USE_MOCK to a boolean", () => {
     expect(parseEnv({ VITE_API_URL: "/api", VITE_USE_MOCK: "true" })).toEqual({

@@ -2,5 +2,4 @@ dist
 coverage
 package-lock.json
 public/mockServiceWorker.js
-# The plan is maintained by hand; keep its formatting as written
 Todo-App-Project-Plan.md

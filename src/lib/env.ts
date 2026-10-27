@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-/**
- * Environment variables, validated once at startup (EC-76).
- * A missing or invalid value throws immediately with a clear message,
- * instead of surfacing later as a confusing network error.
- */
 const envSchema = z.object({
   VITE_API_URL: z
     .string({ error: "VITE_API_URL is required" })
@@ -12,7 +7,6 @@ const envSchema = z.object({
     .refine((value) => value.startsWith("/") || URL.canParse(value), {
       error: 'VITE_API_URL must be a path like "/api" or an absolute URL',
     })
-    // Drop trailing slashes so the http client can always join with "/path"
     .transform((value) => value.replace(/\/+$/, "")),
   VITE_USE_MOCK: z
     .enum(["true", "false"], { error: 'VITE_USE_MOCK must be "true" or "false"' })
