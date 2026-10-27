@@ -66,7 +66,9 @@ describe("mock database", () => {
     expect(db.version).toBe(MOCK_DB_VERSION);
     expect(db.users.some((user) => user.email === "ann@example.com")).toBe(true);
     expect(db.todos).toHaveLength(5);
-    expect(JSON.parse(localStorage.getItem(MOCK_DB_STORAGE_KEY) ?? "null").version).toBe(MOCK_DB_VERSION);
+    expect(JSON.parse(localStorage.getItem(MOCK_DB_STORAGE_KEY) ?? "null").version).toBe(
+      MOCK_DB_VERSION,
+    );
   });
 
   it("resetMockDb() returns to the seed data", async () => {
