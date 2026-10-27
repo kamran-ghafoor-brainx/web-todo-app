@@ -20,12 +20,16 @@ function makeCounterSlice(name: string) {
 describe("root reducer (T-U09)", () => {
   it("clears the user and marks the session as unauthenticated on sessionEnded", () => {
     const store = makeStore({
-      auth: { status: "authenticated", user, bootstrapError: "old error" },
+      auth: { status: "authenticated", user, bootstrapError: "old error", endReason: null },
     });
 
-    store.dispatch(sessionEnded());
+    store.dispatch(sessionEnded({ reason: "loggedOut" }));
 
-    expect(store.getState().auth).toEqual({ ...initialAuthState, status: "unauthenticated" });
+    expect(store.getState().auth).toEqual({
+      ...initialAuthState,
+      status: "unauthenticated",
+      endReason: "loggedOut",
+    });
   });
 
   it("resets every slice, including ones added later, on sessionEnded", () => {
@@ -39,11 +43,14 @@ describe("root reducer (T-U09)", () => {
     state = reducer(state, second.actions.set(7));
     expect(state).toEqual({ first: { value: 3 }, second: { value: 7 } });
 
-    expect(reducer(state, sessionEnded())).toEqual({ first: { value: 0 }, second: { value: 0 } });
+    expect(reducer(state, sessionEnded({ reason: "loggedOut" }))).toEqual({
+      first: { value: 0 },
+      second: { value: 0 },
+    });
   });
 
   it("leaves state untouched for other actions", () => {
-    const store = makeStore({ auth: { status: "authenticated", user, bootstrapError: null } });
+    const store = makeStore({ auth: { ...initialAuthState, status: "authenticated", user } });
     const before = store.getState();
 
     store.dispatch({ type: "something/else" });
@@ -52,7 +59,7 @@ describe("root reducer (T-U09)", () => {
   });
 
   it("gives each store its own state", () => {
-    const a = makeStore({ auth: { status: "authenticated", user, bootstrapError: null } });
+    const a = makeStore({ auth: { ...initialAuthState, status: "authenticated", user } });
     const b = makeStore();
 
     expect(a.getState().auth.status).toBe("authenticated");

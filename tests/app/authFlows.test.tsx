@@ -1,24 +1,13 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { StrictMode } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router";
-import { routes } from "@/app/router";
+import { screen, waitFor } from "@testing-library/react";
 import { authApi } from "@/features/auth";
 import { messages } from "@/lib/messages";
 import { tokenStorage } from "@/lib/tokenStorage";
 import { listMailbox } from "@/mocks/mailbox";
+import { renderApp } from "@tests/utils/renderApp";
 
 vi.setConfig({ testTimeout: 15_000 });
 
-type User = ReturnType<typeof userEvent.setup>;
-
-function renderApp(url: string, { strict = false } = {}) {
-  const user = userEvent.setup();
-  const router = createMemoryRouter(routes, { initialEntries: [url] });
-  const app = <RouterProvider router={router} />;
-  render(strict ? <StrictMode>{app}</StrictMode> : app);
-  return { user, router, path: () => router.state.location.pathname };
-}
+type User = ReturnType<typeof renderApp>["user"];
 
 const heading = (name: string) => screen.getByRole("heading", { level: 1, name });
 const findHeading = (name: string) => screen.findByRole("heading", { level: 1, name });
@@ -333,10 +322,7 @@ describe("login (T-C05)", () => {
   });
 
   it("ignores unknown navigation state instead of showing it", () => {
-    const router = createMemoryRouter(routes, {
-      initialEntries: [{ pathname: "/login", state: { notice: "<script>" } }],
-    });
-    render(<RouterProvider router={router} />);
+    renderApp({ pathname: "/login", state: { notice: "<script>" } });
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });

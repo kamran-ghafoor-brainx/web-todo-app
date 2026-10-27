@@ -1,12 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { createMemoryRouter, RouterProvider } from "react-router";
-import { routes } from "@/app/router";
-
-function renderApp(url: string) {
-  const router = createMemoryRouter(routes, { initialEntries: [url] });
-  render(<RouterProvider router={router} />);
-  return router;
-}
+import { screen } from "@testing-library/react";
+import { renderApp } from "@tests/utils/renderApp";
 
 describe("app routes", () => {
   it("shows the login page inside the auth layout at /login", () => {
@@ -23,7 +16,7 @@ describe("app routes", () => {
   });
 
   it("redirects / to /login for now", () => {
-    const router = renderApp("/");
-    expect(router.state.location.pathname).toBe("/login");
+    const { path } = renderApp("/");
+    expect(path()).toBe("/login");
   });
 });

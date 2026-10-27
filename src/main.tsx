@@ -1,5 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { Providers } from "@/app/Providers";
+import { registerSessionListeners } from "@/app/sessionListeners";
+import { store } from "@/app/store";
 import { env } from "@/lib/env";
 import "@fontsource-variable/roboto";
 import "./index.css";
@@ -29,6 +31,8 @@ async function start() {
       );
     }
   }
+
+  registerSessionListeners(store);
 
   createRoot(document.getElementById("root")!).render(
     <Providers>

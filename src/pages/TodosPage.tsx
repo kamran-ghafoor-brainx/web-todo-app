@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router";
+import { useAppDispatch } from "@/app/hooks";
 import { Alert } from "@/components/Alert";
 import { Button } from "@/components/Button";
 import { CheckCircleIcon } from "@/components/icons";
 import { Spinner } from "@/components/Spinner";
-import { AuthCard, authApi, type LoginLocationState, type User } from "@/features/auth";
+import {
+  AuthCard,
+  authApi,
+  logout as logoutThunk,
+  type LoginLocationState,
+  type User,
+} from "@/features/auth";
 import { ApiError } from "@/lib/ApiError";
 import { getErrorMessage } from "@/lib/getErrorMessage";
 import { messages } from "@/lib/messages";
@@ -13,6 +20,7 @@ import { tokenStorage } from "@/lib/tokenStorage";
 
 export function TodosPage() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const hasToken = tokenStorage.get() !== null;
   const [user, setUser] = useState<User | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -40,8 +48,7 @@ export function TodosPage() {
 
   async function logout() {
     setIsLoggingOut(true);
-    await authApi.logout().catch(() => undefined);
-    tokenStorage.clear();
+    await dispatch(logoutThunk());
     const state: LoginLocationState = { notice: "loggedOut" };
     navigate(PATHS.login, { replace: true, state });
   }

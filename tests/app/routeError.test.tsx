@@ -1,7 +1,6 @@
-import { render, screen } from "@testing-library/react";
-import { createMemoryRouter, RouterProvider } from "react-router";
-import { routes } from "@/app/router";
+import { screen } from "@testing-library/react";
 import { messages } from "@/lib/messages";
+import { renderApp } from "@tests/utils/renderApp";
 
 vi.mock("@/pages/DevMailboxPage", () => {
   throw new Error("Failed to fetch dynamically imported module");
@@ -10,8 +9,7 @@ vi.mock("@/pages/DevMailboxPage", () => {
 describe("route error boundary", () => {
   it("shows the error page inside the app frame when a page fails to load", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const router = createMemoryRouter(routes, { initialEntries: ["/dev/mailbox"] });
-    render(<RouterProvider router={router} />);
+    renderApp("/dev/mailbox");
 
     expect(
       await screen.findByRole("heading", { level: 1, name: messages.routeError.title }),

@@ -1,26 +1,26 @@
 import { useLocation, useNavigate } from "react-router";
+import { useAppDispatch } from "@/app/hooks";
 import { Alert } from "@/components/Alert";
 import {
   AuthCard,
   AuthFooterLink,
-  authApi,
+  login,
   LoginForm,
   readLoginNotice,
   type LoginValues,
 } from "@/features/auth";
-import { withUserFacingError } from "@/lib/formErrors";
 import { messages } from "@/lib/messages";
 import { PATHS } from "@/lib/paths";
-import { tokenStorage } from "@/lib/tokenStorage";
 
 export function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const notice = readLoginNotice(location.state);
 
   async function handleLogin(values: LoginValues) {
-    const { accessToken } = await withUserFacingError(authApi.login(values));
-    tokenStorage.set(accessToken);
+    // unwrap() throws the thunk's user-facing message, which LoginForm shows.
+    await dispatch(login(values)).unwrap();
     navigate(PATHS.todos, { replace: true });
   }
 

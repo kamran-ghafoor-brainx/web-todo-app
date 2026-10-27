@@ -1,4 +1,13 @@
 export { authApi } from "@/features/auth/authApi";
+export {
+  selectAuthStatus,
+  selectBootstrapError,
+  selectIsAuthenticated,
+  selectSessionEndReason,
+  selectUser,
+} from "@/features/auth/authSelectors";
+export type { AuthState, AuthStatus } from "@/features/auth/authSlice";
+export { bootstrapSession, login, logout } from "@/features/auth/authThunks";
 export type {
   LoginRequest,
   LoginResponse,

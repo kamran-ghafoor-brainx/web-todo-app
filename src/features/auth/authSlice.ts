@@ -1,19 +1,25 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { sessionEnded } from "@/app/actions";
+import { sessionEnded, type SessionEndReason } from "@/app/actions";
+import { bootstrapSession, login } from "@/features/auth/authThunks";
 import type { User } from "@/features/auth/types";
+import { messages } from "@/lib/messages";
 
 export type AuthStatus = "unknown" | "authenticated" | "unauthenticated";
 
 export type AuthState = {
   status: AuthStatus;
   user: User | null;
+  /** Set when startup could not reach the server; the retry screen shows it. */
   bootstrapError: string | null;
+  /** Why the last session ended, so the login page can say so. */
+  endReason: SessionEndReason | null;
 };
 
 export const initialAuthState: AuthState = {
   status: "unknown",
   user: null,
   bootstrapError: null,
+  endReason: null,
 };
 
 export const authSlice = createSlice({
@@ -21,9 +27,27 @@ export const authSlice = createSlice({
   initialState: initialAuthState,
   reducers: {},
   extraReducers: (builder) => {
-    // The root reducer has already reset this slice; the session is now known to be over.
-    builder.addCase(sessionEnded, (state) => {
-      state.status = "unauthenticated";
-    });
+    builder
+      .addCase(bootstrapSession.pending, (state) => {
+        state.bootstrapError = null;
+      })
+      .addCase(bootstrapSession.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.status = action.payload ? "authenticated" : "unauthenticated";
+      })
+      .addCase(bootstrapSession.rejected, (state, action) => {
+        state.bootstrapError = action.payload ?? messages.errors.server;
+      })
+      .addCase(login.fulfilled, (state, action) => {
+        state.status = "authenticated";
+        state.user = action.payload;
+        state.bootstrapError = null;
+        state.endReason = null;
+      })
+      // The root reducer has already reset this slice; the session is now known to be over.
+      .addCase(sessionEnded, (state, action) => {
+        state.status = "unauthenticated";
+        state.endReason = action.payload.reason;
+      });
   },
 });
