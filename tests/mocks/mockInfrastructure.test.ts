@@ -1,7 +1,8 @@
 import { authApi } from "@/features/auth";
-import { MOCK_DB_STORAGE_KEY } from "@/mocks/config";
+import { MOCK_DB_STORAGE_KEY, MOCK_DB_VERSION } from "@/mocks/config";
 import { getDb, resetMockDb } from "@/mocks/db";
 import { checkRateLimit } from "@/mocks/rateLimit";
+import { createSeedTodos } from "@/mocks/seed";
 import { createPasswordRecord, hashPassword, verifyPassword } from "@/mocks/security";
 
 describe("mock database", () => {
@@ -54,6 +55,20 @@ describe("mock database", () => {
     expect((await getDb()).users).toHaveLength(5);
   });
 
+  it("upgrades a saved version 1 copy, keeping its users and adding the demo todos", async () => {
+    await authApi.signup({ name: "Ann Lee", email: "ann@example.com", password: "secret12" });
+    const v1 = { ...(await getDb()), version: 1, todos: undefined };
+    resetMockDb();
+    localStorage.setItem(MOCK_DB_STORAGE_KEY, JSON.stringify(v1));
+
+    const db = await getDb();
+
+    expect(db.version).toBe(MOCK_DB_VERSION);
+    expect(db.users.some((user) => user.email === "ann@example.com")).toBe(true);
+    expect(db.todos).toHaveLength(5);
+    expect(JSON.parse(localStorage.getItem(MOCK_DB_STORAGE_KEY) ?? "null").version).toBe(MOCK_DB_VERSION);
+  });
+
   it("resetMockDb() returns to the seed data", async () => {
     await authApi.signup({ name: "Ann Lee", email: "ann@example.com", password: "secret12" });
     resetMockDb();
@@ -67,6 +82,60 @@ describe("mock database", () => {
     await authApi.signup({ name: "Ann Lee", email: "ann@example.com", password: "secret12" });
     expect(localStorage.getItem(MOCK_DB_STORAGE_KEY)).not.toContain("secret12");
     expect(localStorage.getItem(MOCK_DB_STORAGE_KEY)).not.toContain("Passw0rd!");
+  });
+});
+
+describe("seeded demo todos", () => {
+  const today = new Date(2026, 9, 27, 9, 30);
+
+  async function seededFor(now: Date) {
+    const db = await getDb();
+    return { db, todos: createSeedTodos(db.users, now) };
+  }
+
+  it("gives the demo user 5 todos and nobody else any", async () => {
+    const db = await getDb();
+    const demo = db.users.find((user) => user.email === "demo@example.com");
+
+    expect(db.version).toBe(MOCK_DB_VERSION);
+    expect(db.todos).toHaveLength(5);
+    expect(db.todos.every((todo) => todo.userId === demo?.id)).toBe(true);
+  });
+
+  it("includes one overdue todo and one completed todo", async () => {
+    const { todos } = await seededFor(today);
+    const overdue = todos.filter(
+      (todo) => !todo.isCompleted && todo.dueDate !== null && todo.dueDate < "2026-10-27",
+    );
+
+    expect(overdue.map((todo) => todo.dueDate)).toEqual(["2026-10-24"]);
+    expect(todos.filter((todo) => todo.isCompleted)).toHaveLength(1);
+  });
+
+  it("uses date-only due dates relative to today, and some todos have none", async () => {
+    const { todos } = await seededFor(today);
+
+    expect(todos.map((todo) => todo.dueDate)).toEqual([
+      "2026-10-29",
+      "2026-10-27",
+      "2026-10-24",
+      "2026-10-26",
+      null,
+    ]);
+  });
+
+  it("is ordered newest first, with matching created and updated times", async () => {
+    const { todos } = await seededFor(today);
+    const created = todos.map((todo) => todo.createdAt);
+
+    expect([...created].sort().reverse()).toEqual(created);
+    expect(new Set(created).size).toBe(5);
+    expect(todos.every((todo) => todo.updatedAt === todo.createdAt)).toBe(true);
+  });
+
+  it("crosses month boundaries correctly", async () => {
+    const { todos } = await seededFor(new Date(2026, 0, 1, 0, 5));
+    expect(todos[2]?.dueDate).toBe("2025-12-29");
   });
 });
 

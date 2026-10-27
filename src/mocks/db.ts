@@ -1,7 +1,7 @@
 import { ignoreErrors } from "@/lib/ignoreErrors";
-import { MOCK_DB_STORAGE_KEY } from "@/mocks/config";
+import { MOCK_DB_STORAGE_KEY, MOCK_DB_VERSION } from "@/mocks/config";
 import { resetRateLimits } from "@/mocks/rateLimit";
-import { createSeedState } from "@/mocks/seed";
+import { createSeedState, createSeedTodos } from "@/mocks/seed";
 
 export type MockUser = {
   id: string;
@@ -37,13 +37,27 @@ export type MockEmail = {
   sentAt: string;
 };
 
+export type MockTodo = {
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  isCompleted: boolean;
+  dueDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type MockDbState = {
-  version: 1;
+  version: typeof MOCK_DB_VERSION;
   users: MockUser[];
   sessions: MockSession[];
   emailTokens: MockEmailToken[];
   mailbox: MockEmail[];
+  todos: MockTodo[];
 };
+
+type MockDbStateV1 = Omit<MockDbState, "version" | "todos"> & { version: 1 };
 
 let state: MockDbState | null = null;
 let loading: Promise<MockDbState> | null = null;
@@ -82,20 +96,39 @@ function readSavedState(): MockDbState | null {
     const raw = localStorage.getItem(MOCK_DB_STORAGE_KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
-    return isDbState(parsed) ? parsed : null;
+    if (isDbState(parsed)) return parsed;
+    if (isDbStateV1(parsed)) return upgradeFromV1(parsed);
+    return null;
   } catch {
     return null;
   }
+}
+
+function hasAuthTables(candidate: Partial<MockDbStateV1 | MockDbState>): boolean {
+  return (
+    Array.isArray(candidate.users) &&
+    Array.isArray(candidate.sessions) &&
+    Array.isArray(candidate.emailTokens) &&
+    Array.isArray(candidate.mailbox)
+  );
 }
 
 function isDbState(value: unknown): value is MockDbState {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as Partial<MockDbState>;
   return (
-    candidate.version === 1 &&
-    Array.isArray(candidate.users) &&
-    Array.isArray(candidate.sessions) &&
-    Array.isArray(candidate.emailTokens) &&
-    Array.isArray(candidate.mailbox)
+    candidate.version === MOCK_DB_VERSION &&
+    hasAuthTables(candidate) &&
+    Array.isArray(candidate.todos)
   );
+}
+
+function isDbStateV1(value: unknown): value is MockDbStateV1 {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<MockDbStateV1>;
+  return candidate.version === 1 && hasAuthTables(candidate);
+}
+
+function upgradeFromV1(saved: MockDbStateV1): MockDbState {
+  return { ...saved, version: MOCK_DB_VERSION, todos: createSeedTodos(saved.users) };
 }

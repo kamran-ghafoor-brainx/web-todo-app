@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
 
 export const MOCK_DB_STORAGE_KEY = "todo-app.mock-db";
+export const MOCK_DB_VERSION = 2;
 
 export const MAGIC_PASSWORD = "Passw0rd!";
 export const MAGIC_EMAILS = {
@@ -12,7 +13,7 @@ export const MAGIC_EMAILS = {
 } as const;
 
 const SECOND = 1000;
-const MINUTE = 60 * SECOND;
+export const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 
 export const DURATIONS = {
