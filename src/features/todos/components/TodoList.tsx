@@ -17,7 +17,7 @@ export function TodoList() {
   if (status === "error") return <Alert variant="error">{error}</Alert>;
 
   return (
-    <ul className="space-y-2">
+    <ul aria-label={messages.todosPage.listLabel} className="space-y-2">
       {todos.map((todo) => (
         <li
           key={todo.id}

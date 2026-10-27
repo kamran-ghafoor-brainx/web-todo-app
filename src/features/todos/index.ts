@@ -1,9 +1,11 @@
+export { TodoFilters } from "@/features/todos/components/TodoFilters";
 export { TodoList } from "@/features/todos/components/TodoList";
 export { formatDate, isOverdue, parseDateOnly, toDateOnly } from "@/features/todos/dates";
 export { useFilteredTodos } from "@/features/todos/hooks/useFilteredTodos";
 export {
   filterTodos,
   parseTodoFilter,
+  searchForFilter,
   TODO_FILTER_PARAM,
   TODO_FILTERS,
   type TodoFilter,

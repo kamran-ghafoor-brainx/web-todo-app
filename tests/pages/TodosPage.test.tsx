@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { http as mswHttp, HttpResponse } from "msw";
 import { authApi } from "@/features/auth";
 import { initialAuthState } from "@/features/auth/authSlice";
@@ -21,7 +21,7 @@ async function renderAsDemo() {
   });
 }
 
-describe("TodosPage (D1)", () => {
+describe("TodosPage (D1, D2)", () => {
   it("has the page heading and tab title", async () => {
     await renderAsDemo();
 
@@ -34,13 +34,33 @@ describe("TodosPage (D1)", () => {
 
     expect(screen.getByRole("img", { name: messages.todosPage.loading })).toBeInTheDocument();
     expect(await screen.findByText("Plan the week")).toBeVisible();
-    expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+    const list = screen.getByRole("list", { name: messages.todosPage.listLabel });
+    expect(
+      within(list)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual([
       "Plan the week",
       "Buy groceries",
       "Renew library books",
       "Call the dentist",
       "Read chapter 4",
     ]);
+  });
+
+  it("shows the filters with counts once loaded, and filters the list by the URL", async () => {
+    const { user } = await renderAsDemo();
+    await screen.findByText("Plan the week");
+
+    await user.click(screen.getByRole("link", { name: /^Completed/ }));
+
+    const list = screen.getByRole("list", { name: messages.todosPage.listLabel });
+    expect(
+      within(list)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Call the dentist"]);
+    expect(screen.getByRole("link", { name: /^All/ })).toHaveTextContent("5");
   });
 
   it("shows a readable error when the list cannot load", async () => {

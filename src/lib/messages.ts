@@ -173,6 +173,14 @@ export const messages = {
   todosPage: {
     title: "My todos",
     loading: "Loading your todos",
+    listLabel: "Your todos",
+  },
+
+  todoFilters: {
+    label: "Filter todos",
+    all: "All",
+    active: "Active",
+    completed: "Completed",
   },
 
   notFound: {

@@ -15,3 +15,11 @@ export function filterTodos(todos: Todo[], filter: TodoFilter): Todo[] {
   if (filter === "completed") return todos.filter((todo) => todo.isCompleted);
   return todos;
 }
+
+export function searchForFilter(current: URLSearchParams, filter: TodoFilter): string {
+  const next = new URLSearchParams(current);
+  if (filter === "all") next.delete(TODO_FILTER_PARAM);
+  else next.set(TODO_FILTER_PARAM, filter);
+  const search = next.toString();
+  return search ? `?${search}` : "";
+}
