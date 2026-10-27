@@ -104,6 +104,7 @@ All todo endpoints require authentication and are scoped to the token's user.
 ## 6. Behavior rules
 
 - A user's todos are only ever visible to that user. Another user's todo id returns `404`, not `403`, so its existence is not revealed.
+- Todo `title` and `description` are trimmed. A blank `description` is stored as `null`. Unknown body fields (for example `userId`) are ignored.
 - `forgot-password` and `resend-verification` return `200` for **any** email, so accounts cannot be enumerated.
 - Verification and reset tokens are **single-use**. Verification tokens last 24 hours, reset tokens 1 hour.
 - Emails are compared case-insensitively, after trimming.

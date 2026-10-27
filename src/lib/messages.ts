@@ -32,6 +32,10 @@ export const messages = {
     passwordNeedsLetterAndNumber: "Password must include at least one letter and one number.",
     confirmPasswordRequired: "Enter your password again.",
     passwordsDoNotMatch: "Passwords don't match.",
+    titleRequired: "Enter a title.",
+    titleTooLong: "Title must be 100 characters or fewer.",
+    descriptionTooLong: "Description must be 500 characters or fewer.",
+    dueDateInvalid: "Enter a valid date.",
   },
 
   fields: {

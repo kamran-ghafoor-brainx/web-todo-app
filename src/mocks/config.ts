@@ -12,6 +12,8 @@ export const MAGIC_EMAILS = {
   slow: "slow@example.com",
 } as const;
 
+export const MAGIC_FAIL_TITLE = "[fail]";
+
 const SECOND = 1000;
 export const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;

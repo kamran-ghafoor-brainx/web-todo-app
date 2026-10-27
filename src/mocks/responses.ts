@@ -1,7 +1,9 @@
 import { HttpResponse, delay } from "msw";
 import type { z } from "zod";
 import type { ServerErrorCode } from "@/lib/ApiError";
-import { LATENCY } from "@/mocks/config";
+import { findUserBySessionToken } from "@/mocks/authStore";
+import { LATENCY, MAGIC_EMAILS } from "@/mocks/config";
+import type { MockUser } from "@/mocks/db";
 
 const STATUS_TEXT: Record<number, string> = {
   400: "Bad Request",
@@ -67,4 +69,11 @@ export async function simulateLatency({ slow = false }: { slow?: boolean } = {})
     ? LATENCY.slowMs
     : LATENCY.minMs + Math.random() * (LATENCY.maxMs - LATENCY.minMs);
   if (ms > 0) await delay(ms);
+}
+
+export async function authenticate(request: Request): Promise<MockUser | undefined> {
+  const token = readBearerToken(request);
+  const user = token ? await findUserBySessionToken(token) : undefined;
+  await simulateLatency({ slow: user?.email === MAGIC_EMAILS.slow });
+  return user;
 }

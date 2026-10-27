@@ -11,7 +11,6 @@ import {
   deleteSession,
   findUserByCredentials,
   findUserByEmail,
-  findUserBySessionToken,
   issueEmailToken,
   markEmailVerified,
   toPublicUser,
@@ -21,6 +20,7 @@ import type { MockUser } from "@/mocks/db";
 import { sendEmail } from "@/mocks/mailbox";
 import { checkRateLimit } from "@/mocks/rateLimit";
 import {
+  authenticate,
   errorResponse,
   parseJsonBody,
   readBearerToken,
@@ -143,17 +143,13 @@ export const authHandlers = [
   }),
 
   http.get(apiUrl("/auth/me"), async ({ request }) => {
-    const token = readBearerToken(request);
-    const user = token ? await findUserBySessionToken(token) : undefined;
-    await simulateLatency({ slow: isSlow(user?.email) });
-
+    const user = await authenticate(request);
     return user ? HttpResponse.json(toPublicUser(user)) : unauthorizedResponse();
   }),
 
   http.post(apiUrl("/auth/logout"), async ({ request }) => {
+    const user = await authenticate(request);
     const token = readBearerToken(request);
-    const user = token ? await findUserBySessionToken(token) : undefined;
-    await simulateLatency({ slow: isSlow(user?.email) });
     if (!token || !user) return unauthorizedResponse();
 
     await deleteSession(token);
