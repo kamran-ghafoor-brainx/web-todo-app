@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { AppLogo } from "@/components/AppLogo";
 import { Card } from "@/components/Card";
+import { EmptyState } from "@/components/EmptyState";
 import { TextLink } from "@/components/TextLink";
 
 describe("Card", () => {
@@ -31,5 +32,20 @@ describe("TextLink", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/signup");
+  });
+});
+
+describe("EmptyState", () => {
+  it("shows a heading, a description and an action", () => {
+    render(
+      <EmptyState
+        title="No todos yet"
+        description="Add your first todo to get started."
+        action={<button type="button">Add a todo</button>}
+      />,
+    );
+    expect(screen.getByRole("heading", { level: 2, name: "No todos yet" })).toBeVisible();
+    expect(screen.getByText("Add your first todo to get started.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Add a todo" })).toBeVisible();
   });
 });

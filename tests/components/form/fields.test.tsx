@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { PasswordField } from "@/components/form/PasswordField";
+import { TextArea } from "@/components/form/TextArea";
 import { TextField } from "@/components/form/TextField";
 
 describe("TextField", () => {
@@ -110,5 +111,26 @@ describe("PasswordField", () => {
     render(<PasswordField label="Password" disabled />);
     expect(screen.getByLabelText("Password")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Show password" })).toBeDisabled();
+  });
+});
+
+describe("TextArea", () => {
+  it("is a labelled multi-line field with linked hint and error", () => {
+    render(<TextArea label="Description" hint="Up to 500 characters." error="Too long." />);
+    const textarea = screen.getByRole("textbox", { name: "Description" });
+    expect(textarea.tagName).toBe("TEXTAREA");
+    expect(textarea).toHaveAttribute("aria-invalid", "true");
+    expect(textarea).toHaveAccessibleDescription("Up to 500 characters. Too long.");
+  });
+
+  it("passes the ref and native props through to the textarea", async () => {
+    const ref = createRef<HTMLTextAreaElement>();
+    render(<TextArea label="Description" ref={ref} maxLength={500} name="description" />);
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Description" }), "Two\nlines");
+
+    expect(ref.current).toHaveValue("Two\nlines");
+    expect(ref.current).toHaveAttribute("maxlength", "500");
+    expect(ref.current).toHaveAttribute("name", "description");
   });
 });

@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { Provider } from "react-redux";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { makeStore, type AppStore, type RootState } from "@/app/store";
+import { ToastProvider } from "@/components/toast/ToastProvider";
 
 type Options = {
   route?: string;
@@ -31,7 +32,9 @@ export function renderWithProviders(ui: ReactElement, options: Options = {}) {
     user: userEvent.setup(),
     ...render(
       <Provider store={store}>
-        <RouterProvider router={router} />
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
       </Provider>,
     ),
   };

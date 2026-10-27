@@ -6,6 +6,7 @@ import { createMemoryRouter, RouterProvider, type InitialEntry } from "react-rou
 import { routes } from "@/app/router";
 import { registerSessionListeners } from "@/app/sessionListeners";
 import { makeStore } from "@/app/store";
+import { ToastProvider } from "@/components/toast/ToastProvider";
 
 /** Renders the whole route tree at `entry` with a fresh store, like the real app. */
 export function renderApp(entry: InitialEntry, { strict = false } = {}) {
@@ -14,7 +15,9 @@ export function renderApp(entry: InitialEntry, { strict = false } = {}) {
   const router = createMemoryRouter(routes, { initialEntries: [entry] });
   const app = (
     <Provider store={store}>
-      <RouterProvider router={router} />
+      <ToastProvider>
+        <RouterProvider router={router} />
+      </ToastProvider>
     </Provider>
   );
   const result = render(strict ? <StrictMode>{app}</StrictMode> : app);

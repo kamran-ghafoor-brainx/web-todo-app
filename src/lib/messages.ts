@@ -45,6 +45,15 @@ export const messages = {
     showPassword: "Show password",
   },
 
+  dialog: {
+    cancel: "Cancel",
+  },
+
+  toast: {
+    region: "Notifications",
+    dismiss: "Dismiss notification",
+  },
+
   auth: {
     invalidCredentials: "Email or password is incorrect.",
     emailNotVerified: "Please verify your email before logging in.",
