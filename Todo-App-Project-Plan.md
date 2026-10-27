@@ -1244,25 +1244,25 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 - [x] **Tests:** T-U05, T-U06, T-U07.
 
 **2.2 Store**
-- [ ] `app/actions.ts` with `sessionEnded`.
-- [ ] `app/store.ts`: a `makeStore()` factory, the root reducer with reset-on-`sessionEnded`, and `RootState`, `AppDispatch`, `AppStore` types.
-- [ ] `app/hooks.ts`: `useAppDispatch` and `useAppSelector` with `.withTypes`.
-- [ ] `app/createAppAsyncThunk.ts` with `withTypes` (`state`, `dispatch`, `rejectValue: string`).
-- [ ] Register the unauthorized handler from the store setup.
-- [ ] **Tests:** T-U09.
+- [x] `app/actions.ts` with `sessionEnded`.
+- [x] `app/store.ts`: a `makeStore()` factory, the root reducer with reset-on-`sessionEnded`, and `RootState`, `AppDispatch`, `AppStore` types.
+- [x] `app/hooks.ts`: `useAppDispatch` and `useAppSelector` with `.withTypes`.
+- [x] `app/createAppAsyncThunk.ts` with `withTypes` (`state`, `dispatch`, `rejectValue: string`).
+- [x] Register the unauthorized handler from the store setup. (Done in `app/sessionListeners.ts`, called once from `main.tsx`, not inside `store.ts`.)
+- [x] **Tests:** T-U09.
 
 **2.3 Router and layouts**
-- [ ] `app/router.tsx` with all routes from section 7.3. Pages can be placeholders.
-- [ ] `AuthLayout` and `AppLayout`, each with an `<Outlet />` and an `errorElement`.
-- [ ] Stub `ProtectedRoute` and `PublicOnlyRoute`.
-- [ ] `NotFoundPage` and an error boundary fallback.
-- [ ] `app/Providers.tsx`: `StrictMode`, the Redux `Provider`, the toast provider.
+- [x] `app/router.tsx` with all routes from section 7.3. Pages can be placeholders.
+- [x] `AuthLayout` and `AppLayout`, each with an `<Outlet />` and an `errorElement`.
+- [ ] Stub `ProtectedRoute` and `PublicOnlyRoute`. (Skipped by decision: `AppLayout` checks the session for `/todos`; no general guards yet.)
+- [x] `NotFoundPage` and an error boundary fallback.
+- [x] `app/Providers.tsx`: `StrictMode`, the Redux `Provider`, the toast provider.
 
 **2.4 Shared UI kit** (section 7.10)
-- [ ] `Button`, `TextField`, `TextArea`, `PasswordField`.
-- [ ] `Alert`, `Spinner`, `SplashScreen`, `EmptyState`.
-- [ ] `Dialog`, `ConfirmDialog`, `ToastProvider` and `useToast`.
-- [ ] **Tests:** T-C01, T-C02.
+- [x] `Button`, `TextField`, `TextArea`, `PasswordField`.
+- [ ] `Alert`, `Spinner`, `SplashScreen`, `EmptyState`. (Done except `SplashScreen`: `AppLayout` shows a labelled spinner while the session is checked.)
+- [x] `Dialog`, `ConfirmDialog`, `ToastProvider` and `useToast`.
+- [x] **Tests:** T-C01, T-C02.
 
 **Commits:** `feat(ui): add theme tokens, Roboto font and base styles` for 2.0, then items 5 to 9 from section 14.3. Open a **draft PR** at the end of this phase.
 
@@ -1281,7 +1281,7 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 - [x] Seed the magic accounts (section 9.5). (The demo user's five todos come with Phase 5.)
 - [x] `mocks/mailbox.ts` and the `DevMailboxPage` (mock mode only, via the dev endpoints of D-26).
 - [x] `mocks/handlers/authHandlers.ts`: all eight auth endpoints, every error from the contract, the NestJS-style error body with `code`, latency, rate limiting, single-use tokens, token expiry.
-- [ ] `mocks/handlers/todosHandlers.ts`: all five todo endpoints, ownership by token, the `[fail]` magic title.
+- [x] `mocks/handlers/todosHandlers.ts`: all five todo endpoints, ownership by token, the `[fail]` magic title.
 - [x] Validate request bodies in the mock using the same rules as the client (shared field rules from `authSchemas.ts`).
 - [x] `mocks/browser.ts` and `mocks/server.ts`; `tests/setup.ts` runs the shared server for every test.
 - [x] Gate the worker in `main.tsx` with a dynamic import behind `VITE_USE_MOCK` (section 9.3), with a 10 s fallback so the app never stays blank. Only register the `/dev/mailbox` route in mock mode.
@@ -1303,7 +1303,7 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 - [x] `authSchemas.ts`: login, signup, email request, reset (the password rule defined once). **Tests:** T-U01.
 - [x] `types.ts`, `authApi.ts` (public calls use `{ auth: false }`; contract-tested against the mock).
 - [ ] `safeRedirect.ts` (**Tests:** T-U03). (`tokenStorage` was built in 2.1, D-23.)
-- [ ] `authSlice.ts`, `authThunks.ts` (`bootstrapSession`, `login`, `logout`), `authSelectors.ts`. **Tests:** T-U08.
+- [x] `authSlice.ts`, `authThunks.ts` (`bootstrapSession`, `login`, `logout`), `authSelectors.ts`. **Tests:** T-U08.
 
 **4.2 Signup** (FR-A01, FR-A03)
 - [x] `SignupForm` with React Hook Form and `zodResolver`. A `409` becomes a field error.
@@ -1322,10 +1322,10 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 - [ ] **Tests:** T-C05.
 
 **4.5 Session, guards and logout** (FR-A05, FR-A06, FR-A09)
-- [ ] Dispatch `bootstrapSession` at startup. Build `SplashScreen` and the bootstrap retry screen.
-- [ ] Implement `ProtectedRoute` and `PublicOnlyRoute` (section 7.8). Check `AppLayout` shows the user and a **Log out** button.
-- [ ] `logout` thunk: best-effort API call, always clear the token, dispatch `sessionEnded`, navigate to `/login`.
-- [ ] **Tests:** T-C09, T-I03.
+- [ ] Dispatch `bootstrapSession` at startup. Build `SplashScreen` and the bootstrap retry screen. (Done: `startSession` runs it once at startup; `AppLayout` shows a spinner and the retry screen. No separate `SplashScreen` component.)
+- [ ] Implement `ProtectedRoute` and `PublicOnlyRoute` (section 7.8). Check `AppLayout` shows the user and a **Log out** button. (Partly: `AppLayout` shows the user and **Log out** and redirects logged-out visitors; `ProtectedRoute`/`PublicOnlyRoute` skipped by decision.)
+- [x] `logout` thunk: best-effort API call, always clear the token, dispatch `sessionEnded`, navigate to `/login`.
+- [ ] **Tests:** T-C09, T-I03. (T-I03 covered by `tests/app/layouts/AppLayout.test.tsx`; T-C09 needs the guards.)
 
 **4.6 Forgot and reset password** (FR-A07, FR-A08)
 - [x] `ForgotPasswordPage` with the always-generic message and a cooldown.
@@ -1333,9 +1333,9 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 - [x] **Tests:** T-C07, T-C08, T-I06.
 
 **4.7 Session expiry and cross-tab sync** (FR-A10)
-- [ ] The unauthorized handler dispatches `sessionEnded` once, with a single message.
-- [ ] `tokenStorage.subscribe` handles other tabs' login and logout.
-- [ ] **Tests:** T-I04, T-I07, T-I01.
+- [x] The unauthorized handler dispatches `sessionEnded` once, with a single message.
+- [ ] `tokenStorage.subscribe` handles other tabs' login and logout. (Logout and token replacement in another tab end this tab's session; login in another tab (EC-28) is not handled yet.)
+- [ ] **Tests:** T-I04, T-I07, T-I01. (Partly: one 401 ending the session is tested in `AppLayout.test.tsx`, and the parallel-401 "once" rule only at unit level in `http.test.ts` (T-U06). T-I07 covers cross-tab logout but not cross-tab login (EC-28). T-I01 is in `authFlows.test.tsx`.)
 
 **Commits:** items 12 to 18 from section 14.3.
 
@@ -1357,23 +1357,23 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 **Goal:** a complete, polished todo module.
 
 **5.1 Data layer**
-- [ ] `types.ts`, `todoSchemas.ts`, `dates.ts` (**Tests:** T-U02, T-U04).
-- [ ] `todosApi.ts`, `todosThunks.ts` with `condition` on `fetchTodos`, `todosSlice.ts` with `pendingById`, `todosSelectors.ts`. **Tests:** T-U10, T-U11.
-- [ ] `useFilteredTodos` hook. **Tests:** T-U12.
+- [x] `types.ts`, `todoSchemas.ts`, `dates.ts` (**Tests:** T-U02, T-U04).
+- [x] `todosApi.ts`, `todosThunks.ts` with `condition` on `fetchTodos`, `todosSlice.ts` with `pendingById`, `todosSelectors.ts`. **Tests:** T-U10, T-U11.
+- [x] `useFilteredTodos` hook. **Tests:** T-U12.
 
 **5.2 Page and list**
-- [ ] `TodosPage`: header, add form, filters, list.
-- [ ] `TodoFilters` (writes `?status=`), `TodoList` with loading, error, empty and filtered-empty states. **Tests:** T-C12.
-- [ ] Fetch only when the session is `authenticated`.
+- [x] `TodosPage`: header, add form, filters, list.
+- [x] `TodoFilters` (writes `?status=`), `TodoList` with loading, error, empty and filtered-empty states. **Tests:** T-C12.
+- [x] Fetch only when the session is `authenticated`.
 
 **5.3 Create, edit, toggle, delete**
-- [ ] `TodoForm` (create) and `EditTodoDialog` (edit) sharing one form. **Tests:** T-C10.
-- [ ] `TodoItem`: checkbox toggle, edit button, delete button, overdue badge, controls disabled while pending. **Tests:** T-C11.
-- [ ] `ConfirmDialog` for delete that names the todo.
-- [ ] Toasts for success and for failures. Treat `404` on update or delete as "already gone".
+- [x] `TodoForm` (create) and `EditTodoDialog` (edit) sharing one form. **Tests:** T-C10.
+- [x] `TodoItem`: checkbox toggle, edit button, delete button, overdue badge, controls disabled while pending. **Tests:** T-C11.
+- [x] `ConfirmDialog` for delete that names the todo.
+- [x] Toasts for success and for failures. Treat `404` on update or delete as "already gone".
 
 **5.4 Isolation**
-- [ ] Confirm todos reset on logout and on `401`. **Tests:** T-I05, T-I02.
+- [x] Confirm todos reset on logout and on `401`. **Tests:** T-I05, T-I02.
 
 **Commits:** items 19 to 21 from section 14.3.
 
