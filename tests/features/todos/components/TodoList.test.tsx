@@ -33,8 +33,8 @@ function renderList(
 
 const titles = () =>
   within(screen.getByRole("list", { name: messages.todoList.label }))
-    .getAllByRole("listitem")
-    .map((item) => item.textContent);
+    .getAllByRole("checkbox")
+    .map((checkbox) => (checkbox as HTMLInputElement).labels?.[0]?.textContent);
 
 describe("TodoList states (T-C12)", () => {
   it.each(["idle", "loading"] as const)(
@@ -124,5 +124,15 @@ describe("TodoList states (T-C12)", () => {
       { route: "/todos?status=active" },
     );
     expect(titles()).toEqual(["Todo a", "Todo c"]);
+  });
+});
+
+describe("a very large list (EC-57)", () => {
+  it("renders 1000 todos, each with its own stable key", () => {
+    const items = Array.from({ length: 1000 }, (_, index) => todo(`id-${index}`, index % 3 === 0));
+    renderList({ status: "success", items });
+
+    expect(titles()).toHaveLength(1000);
+    expect(new Set(titles()).size).toBe(1000);
   });
 });

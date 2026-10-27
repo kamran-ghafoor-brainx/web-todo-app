@@ -158,7 +158,27 @@ export const messages = {
   },
 
   todos: {
-    alreadyGone: "This todo no longer exists. It may have been deleted somewhere else.",
+    added: "Todo added.",
+    updated: "Todo updated.",
+    deleted: "Todo deleted.",
+    alreadyGone: "That todo no longer exists.",
+    saveFailed: "Could not save your changes. Please try again.",
+  },
+
+  todoItem: {
+    edit: "Edit",
+    delete: "Delete",
+    editLabel: (title: string) => `Edit “${title}”`,
+    deleteLabel: (title: string) => `Delete “${title}”`,
+    overdue: "Overdue",
+    due: (date: string) => `Due ${date}`,
+    editHeading: "Edit todo",
+    save: "Save changes",
+    saving: "Saving…",
+    deleteTitle: (title: string) => `Delete “${title}”?`,
+    deleteDescription: "This can't be undone.",
+    deleteConfirm: "Delete",
+    deleting: "Deleting…",
   },
 
   session: {

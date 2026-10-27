@@ -22,6 +22,7 @@ type TodoFormProps = {
   /** Clears the form after a successful save, ready for the next todo. */
   resetOnSuccess?: boolean;
   titleInputRef?: RefObject<HTMLInputElement | null>;
+  onCancel?: () => void;
 };
 
 export function TodoForm({
@@ -31,6 +32,7 @@ export function TodoForm({
   defaultValues = emptyTodoFormValues,
   resetOnSuccess = false,
   titleInputRef,
+  onCancel,
 }: TodoFormProps) {
   const {
     register,
@@ -93,9 +95,16 @@ export function TodoForm({
           error={errors.dueDate?.message}
           {...register("dueDate")}
         />
-        <Button type="submit" loading={isSubmitting} loadingText={submittingLabel}>
-          {submitLabel}
-        </Button>
+        <div className="flex flex-col-reverse gap-3 sm:flex-row">
+          {onCancel && (
+            <Button variant="secondary" disabled={isSubmitting} onClick={onCancel}>
+              {messages.dialog.cancel}
+            </Button>
+          )}
+          <Button type="submit" loading={isSubmitting} loadingText={submittingLabel}>
+            {submitLabel}
+          </Button>
+        </div>
       </div>
     </form>
   );

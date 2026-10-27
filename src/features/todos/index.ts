@@ -1,6 +1,9 @@
 export { AddTodoForm } from "@/features/todos/components/AddTodoForm";
+export { DeleteTodoDialog } from "@/features/todos/components/DeleteTodoDialog";
+export { EditTodoDialog } from "@/features/todos/components/EditTodoDialog";
 export { TodoFilters } from "@/features/todos/components/TodoFilters";
 export { TodoForm } from "@/features/todos/components/TodoForm";
+export { TodoItem } from "@/features/todos/components/TodoItem";
 export { TodoList } from "@/features/todos/components/TodoList";
 export { formatDate, isOverdue, parseDateOnly, toDateOnly } from "@/features/todos/dates";
 export { useFilteredTodos } from "@/features/todos/hooks/useFilteredTodos";

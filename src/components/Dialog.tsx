@@ -8,6 +8,8 @@ type DialogProps = {
   onClose: () => void;
   /** Receives focus when the dialog opens. Defaults to the browser's choice (the first control). */
   initialFocusRef?: RefObject<HTMLElement | null>;
+  /** Where focus goes on close if the element that opened the dialog is gone (e.g. it was deleted). */
+  returnFocusTo?: () => HTMLElement | null;
   children?: ReactNode;
   footer?: ReactNode;
   className?: string;
@@ -23,17 +25,20 @@ export function Dialog({
   description,
   onClose,
   initialFocusRef,
+  returnFocusTo,
   children,
   footer,
   className,
 }: DialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const onCloseRef = useRef(onClose);
+  const returnFocusToRef = useRef(returnFocusTo);
   const titleId = useId();
   const descriptionId = useId();
 
   useEffect(() => {
     onCloseRef.current = onClose;
+    returnFocusToRef.current = returnFocusTo;
   });
 
   useEffect(() => {
@@ -69,7 +74,9 @@ export function Dialog({
       dialog.removeEventListener("cancel", handleCancel);
       dialog.removeEventListener("close", handleClose);
       dialog.close();
-      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+      const target =
+        opener instanceof HTMLElement && opener.isConnected ? opener : returnFocusToRef.current?.();
+      target?.focus();
     };
   }, [initialFocusRef]);
 

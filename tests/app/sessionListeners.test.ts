@@ -3,7 +3,7 @@ import { registerSessionListeners } from "@/app/sessionListeners";
 import { makeStore } from "@/app/store";
 import { initialAuthState } from "@/features/auth/authSlice";
 import { http } from "@/lib/http";
-import { tokenStorage } from "@/lib/tokenStorage";
+import { TOKEN_STORAGE_KEY, tokenStorage } from "@/lib/tokenStorage";
 import { server } from "@/mocks/server";
 
 const user = { id: "u1", name: "Ada", email: "ada@example.com", isEmailVerified: true };
@@ -40,5 +40,57 @@ describe("registerSessionListeners (FR-A10)", () => {
 
     expect(store.getState().auth.status).toBe("authenticated");
     expect(tokenStorage.get()).toBe("mock.current-token");
+  });
+});
+
+function otherTabChangesToken(newValue: string | null) {
+  window.dispatchEvent(
+    new StorageEvent("storage", { key: TOKEN_STORAGE_KEY, newValue, storageArea: localStorage }),
+  );
+}
+
+describe("registerSessionListeners: other tabs (EC-27)", () => {
+  it("ends this tab's session as a logout when another tab logs out", () => {
+    const store = makeStore({ auth: { ...initialAuthState, status: "authenticated", user } });
+    cleanup = registerSessionListeners(store);
+
+    otherTabChangesToken(null);
+
+    expect(store.getState().auth).toEqual({
+      ...initialAuthState,
+      status: "unauthenticated",
+      endReason: "loggedOut",
+    });
+  });
+
+  it("ends this tab's session when another tab replaces the token", () => {
+    const store = makeStore({ auth: { ...initialAuthState, status: "authenticated", user } });
+    cleanup = registerSessionListeners(store);
+
+    otherTabChangesToken("mock.someone-else");
+
+    expect(store.getState().auth.status).toBe("unauthenticated");
+  });
+
+  it.each(["unauthenticated", "unknown"] as const)(
+    "does nothing while this tab is %s",
+    (status) => {
+      const store = makeStore({ auth: { ...initialAuthState, status } });
+      const dispatch = vi.spyOn(store, "dispatch");
+      cleanup = registerSessionListeners(store);
+
+      otherTabChangesToken(null);
+
+      expect(dispatch).not.toHaveBeenCalled();
+    },
+  );
+
+  it("stops listening after cleanup", () => {
+    const store = makeStore({ auth: { ...initialAuthState, status: "authenticated", user } });
+    registerSessionListeners(store)();
+
+    otherTabChangesToken(null);
+
+    expect(store.getState().auth.status).toBe("authenticated");
   });
 });

@@ -15,7 +15,16 @@ export function registerSessionListeners(store: AppStore): () => void {
     store.dispatch(sessionEnded({ reason: "expired" }));
   });
 
-  return () => setUnauthorizedHandler(null);
+  // Another tab logged out or replaced the token, so this tab's session is over (EC-27).
+  const stopTabSync = tokenStorage.subscribe(() => {
+    if (store.getState().auth.status !== "authenticated") return;
+    store.dispatch(sessionEnded({ reason: "loggedOut" }));
+  });
+
+  return () => {
+    setUnauthorizedHandler(null);
+    stopTabSync();
+  };
 }
 
 /** What the app does once at startup: listen for session signals, then decide the session (FR-A05). */

@@ -1,14 +1,20 @@
+import { useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { Alert } from "@/components/Alert";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { CheckCircleIcon } from "@/components/icons";
 import { LinkButton } from "@/components/LinkButton";
+import { DeleteTodoDialog } from "@/features/todos/components/DeleteTodoDialog";
+import { EditTodoDialog } from "@/features/todos/components/EditTodoDialog";
+import { TodoItem } from "@/features/todos/components/TodoItem";
+import { toDateOnly } from "@/features/todos/dates";
 import { useFilteredTodos } from "@/features/todos/hooks/useFilteredTodos";
 import { useTodoFilter } from "@/features/todos/hooks/useTodoFilter";
 import { searchForFilter } from "@/features/todos/todoFilters";
 import { fetchTodos } from "@/features/todos/todosThunks";
 import {
+  selectPendingById,
   selectTodoCounts,
   selectTodosError,
   selectTodosStatus,
@@ -23,11 +29,43 @@ type TodoListProps = {
 };
 
 export function TodoList({ onAddFirst }: TodoListProps) {
+  const [editing, setEditing] = useState<Todo | null>(null);
+  const [deleting, setDeleting] = useState<Todo | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const focusList = () => containerRef.current;
+
+  return (
+    <>
+      <div ref={containerRef} tabIndex={-1} className="rounded-card">
+        <TodoListContent onAddFirst={onAddFirst} onEdit={setEditing} onDelete={setDeleting} />
+      </div>
+      {editing && (
+        <EditTodoDialog todo={editing} onClose={() => setEditing(null)} returnFocusTo={focusList} />
+      )}
+      {deleting && (
+        <DeleteTodoDialog
+          todo={deleting}
+          onClose={() => setDeleting(null)}
+          returnFocusTo={focusList}
+        />
+      )}
+    </>
+  );
+}
+
+type TodoListContentProps = TodoListProps & {
+  onEdit: (todo: Todo) => void;
+  onDelete: (todo: Todo) => void;
+};
+
+function TodoListContent({ onAddFirst, onEdit, onDelete }: TodoListContentProps) {
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectTodosStatus);
   const error = useAppSelector(selectTodosError);
+  const pendingById = useAppSelector(selectPendingById);
   const { all } = useAppSelector(selectTodoCounts);
   const { todos } = useFilteredTodos();
+  const today = toDateOnly(new Date());
 
   const retry = () => void dispatch(fetchTodos());
 
@@ -47,23 +85,23 @@ export function TodoList({ onAddFirst }: TodoListProps) {
   return (
     <div className="space-y-4">
       {status === "error" && <LoadError message={error} onRetry={retry} />}
-      {todos.length === 0 ? <NoMatches /> : <TodoItems todos={todos} />}
+      {todos.length === 0 ? (
+        <NoMatches />
+      ) : (
+        <ul aria-label={messages.todoList.label} className="space-y-2">
+          {todos.map((todo) => (
+            <TodoItem
+              key={todo.id}
+              todo={todo}
+              pending={pendingById[todo.id]}
+              today={today}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
+        </ul>
+      )}
     </div>
-  );
-}
-
-function TodoItems({ todos }: { todos: Todo[] }) {
-  return (
-    <ul aria-label={messages.todoList.label} className="space-y-2">
-      {todos.map((todo) => (
-        <li
-          key={todo.id}
-          className="rounded-card border border-border bg-surface p-4 break-words text-fg"
-        >
-          {todo.title}
-        </li>
-      ))}
-    </ul>
   );
 }
 

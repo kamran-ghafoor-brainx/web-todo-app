@@ -15,6 +15,7 @@ type ConfirmDialogProps = {
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  returnFocusTo?: () => HTMLElement | null;
 };
 
 /** Asks before an action. Focus starts on Cancel, so Enter never confirms by accident. */
@@ -28,6 +29,7 @@ export function ConfirmDialog({
   loading = false,
   onConfirm,
   onCancel,
+  returnFocusTo,
 }: ConfirmDialogProps) {
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -39,6 +41,7 @@ export function ConfirmDialog({
         if (!loading) onCancel();
       }}
       initialFocusRef={cancelRef}
+      returnFocusTo={returnFocusTo}
       footer={
         <>
           <Button ref={cancelRef} variant="secondary" disabled={loading} onClick={onCancel}>

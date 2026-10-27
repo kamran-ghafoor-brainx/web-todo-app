@@ -61,6 +61,45 @@ describe("Dialog (T-C02)", () => {
   });
 });
 
+function DisappearingOpenerHarness() {
+  const [open, setOpen] = useState(false);
+  const [showOpener, setShowOpener] = useState(true);
+  return (
+    <>
+      <p tabIndex={-1} data-testid="fallback">
+        Fallback
+      </p>
+      {showOpener && (
+        <button type="button" onClick={() => setOpen(true)}>
+          Open
+        </button>
+      )}
+      {open && (
+        <Dialog
+          title="Remove"
+          onClose={() => {
+            setShowOpener(false);
+            setOpen(false);
+          }}
+          returnFocusTo={() => document.querySelector<HTMLElement>("[data-testid=fallback]")}
+        />
+      )}
+    </>
+  );
+}
+
+describe("Dialog focus fallback", () => {
+  it("moves focus to the fallback when the opener no longer exists", async () => {
+    const user = userEvent.setup();
+    render(<DisappearingOpenerHarness />);
+
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
+
+    expect(screen.getByTestId("fallback")).toHaveFocus();
+  });
+});
+
 function ConfirmHarness({ loading = false }: { loading?: boolean }) {
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState("none");

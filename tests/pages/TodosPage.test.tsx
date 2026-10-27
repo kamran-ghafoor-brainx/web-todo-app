@@ -9,6 +9,11 @@ import { server } from "@/mocks/server";
 import { TodosPage } from "@/pages/TodosPage";
 import { renderWithProviders } from "@tests/utils/renderWithProviders";
 
+const titlesIn = (list: HTMLElement) =>
+  within(list)
+    .getAllByRole("checkbox")
+    .map((checkbox) => (checkbox as HTMLInputElement).labels?.[0]?.textContent);
+
 async function renderAsDemo(email: string = MAGIC_EMAILS.demo) {
   const { accessToken, user } = await authApi.login({ email, password: MAGIC_PASSWORD });
   tokenStorage.set(accessToken);
@@ -32,11 +37,7 @@ describe("TodosPage (D1, D2, E1)", () => {
     expect(screen.getByRole("status")).toHaveTextContent(messages.todoList.loading);
     expect(await screen.findByText("Plan the week")).toBeVisible();
     const list = screen.getByRole("list", { name: messages.todoList.label });
-    expect(
-      within(list)
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
-    ).toEqual([
+    expect(titlesIn(list)).toEqual([
       "Plan the week",
       "Buy groceries",
       "Renew library books",
@@ -52,11 +53,7 @@ describe("TodosPage (D1, D2, E1)", () => {
     await user.click(screen.getByRole("link", { name: /^Completed/ }));
 
     const list = screen.getByRole("list", { name: messages.todoList.label });
-    expect(
-      within(list)
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
-    ).toEqual(["Call the dentist"]);
+    expect(titlesIn(list)).toEqual(["Call the dentist"]);
     expect(screen.getByRole("link", { name: /^All/ })).toHaveTextContent("5");
   });
 
@@ -69,7 +66,7 @@ describe("TodosPage (D1, D2, E1)", () => {
 
     const list = screen.getByRole("list", { name: messages.todoList.label });
     expect(await within(list).findByText("New one")).toBeVisible();
-    expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent("New one");
+    expect(titlesIn(list)[0]).toBe("New one");
   });
 
   it("moves a new user from 'Add your first todo' into the title field", async () => {

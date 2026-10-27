@@ -1,6 +1,7 @@
 import { useId, type RefObject } from "react";
 import { useAppDispatch } from "@/app/hooks";
 import { Card } from "@/components/Card";
+import { useToast } from "@/components/toast/useToast";
 import { TodoForm } from "@/features/todos/components/TodoForm";
 import { toTodoRequest, type TodoFormValues } from "@/features/todos/todoSchemas";
 import { createTodo } from "@/features/todos/todosThunks";
@@ -12,10 +13,12 @@ type AddTodoFormProps = {
 
 export function AddTodoForm({ titleInputRef }: AddTodoFormProps) {
   const dispatch = useAppDispatch();
+  const toast = useToast();
   const headingId = useId();
 
   async function handleAdd(values: TodoFormValues) {
     await dispatch(createTodo(toTodoRequest(values))).unwrap();
+    toast.success(messages.todos.added);
   }
 
   return (
