@@ -114,6 +114,17 @@ The senior's answers to the eight open questions were all "go with your own sugg
 | D-14 | **Deploy the mock-mode build** as a static demo, so the reviewer can click a link | Faster review, proves the build works in production mode | Senior says a demo is not wanted |
 | D-15 | **npm**, lockfile committed | Default tooling | Team standard is different |
 | D-16 | **Access token is opaque to the frontend.** Never decode it to make decisions. | Authorization belongs to the server | None |
+| D-17 | **`eslint-plugin-jsx-a11y-x`** (es-tooling fork) instead of `eslint-plugin-jsx-a11y`, on **ESLint 10** | The original plugin's last release (6.10.2, Oct 2024) only supports ESLint up to 9, and ESLint 9 is end-of-life. The fork is a drop-in with the same rules and supports ESLint 10. | The original plugin ships ESLint 10 support |
+| D-18 | **Accept the current major versions** installed in Phase 1: TypeScript 6, Vite 8, Vitest 5, **React Router 8** (plan says v7), **MSW 3** (plan says v2), Zod 4 | Fresh project, no reason to start on older majors. The APIs the plan relies on (`createBrowserRouter`, `setupWorker`/`setupServer`, `HttpResponse`) still exist; verify details when Phase 2 and Phase 3 start. | An API used by the plan turns out to be removed |
+| D-19 | **Roboto, self-hosted** through `@fontsource-variable/roboto` (one variable font file covers every weight), not the Google Fonts CDN | No third-party request (privacy, works offline and in the mock demo, no extra origin for a future CSP), and it is versioned in the lockfile | Senior or the design asks for a different font |
+| D-20 | **Semantic design tokens in Tailwind v4 `@theme`** (`src/styles/theme.css`). The default colour palette is removed, so only tokens such as `bg-primary` and `text-fg-muted` exist. **Light theme only.** | One source of truth for visuals. Enforces "one primary colour" (section 10.2). Semantic names mean dark mode later only overrides values, with no component changes. Dark mode is a "Could have" (section 3). | Dark mode is picked up from "Could have" |
+| D-23 | **`tokenStorage` lives in `lib/`**, not `features/auth/` | `lib/http.ts` must read the token, and `lib/` may not import from `features/` (section 7.2). The module is plain storage with no auth logic. | None |
+| D-24 | **Public requests pass `{ auth: false }`** to `http` (login, signup, verify, resend, forgot, reset). They send no token, so their `401` never triggers the unauthorized handler. | Keeps `lib/` free of feature knowledge (no hard-coded `/auth/login` check) and covers EC-26 by design | None |
+| D-25 | **MSW worker via `msw init public` + `setupWorker`**, not MSW 3's new `msw/vite` plugin | The plugin is built on `msw/experimental`; the init + worker route is the stable, documented one. `--save` records `workerDirectory`, so the script is refreshed on upgrades. | The Vite plugin leaves experimental |
+| D-26 | **Mock-only dev endpoints `GET /__dev/mailbox` and `POST /__dev/reset`** feed `/dev/mailbox` | The page uses plain HTTP like every other page, so it never imports mock internals, and the mock code stays in its own lazily loaded chunk | None |
+| D-27 | **Temporary signed-in page at `/todos`** (loads `GET /auth/me`, offers Log out) until Phase 4.5/5 | A successful mock login visibly lands somewhere real; replaced by the Redux session, guards and the todos feature | Phase 4.5 starts |
+| D-28 | **Mock passwords are salted SHA-256** (Web Crypto), never plain text in `localStorage` | The mock db is readable in dev tools. A real backend must use bcrypt or argon2 (SHA-256 is too fast). | None |
+| D-29 | **Tests live in a top-level `tests/` folder mirroring `src/`**, not next to the code; **no code comments** in the codebase | Reviewer preference: source folders contain only app code, and tests are browsable in one place. Intent is carried by names, types and tests. | Team convention changes |
 
 ---
 
@@ -217,7 +228,7 @@ The senior's answers to the eight open questions were all "go with your own sugg
 | C-01 | **No backend exists.** All data comes from the mock (MSW). |
 | C-02 | **No email server.** Emails are simulated by the mock mailbox. |
 | C-03 | Must use the training stack: React, TypeScript, Redux Toolkit, React Router, React Hook Form, and Zod or Yup. |
-| C-04 | Node.js **20.19+ or 22.12+** (current Vite requirement). Check with `node -v`. |
+| C-04 | Node.js **22.19+** (jsdom 30, used by the tests, requires it; Vite alone accepts 20.19+). Check with `node -v`. |
 | C-05 | One PR, submitted **before the backend days**. Confirm the deadline with your senior. |
 | C-06 | `httpOnly` cookies cannot be tested in the mock phase (a service worker cannot set real `httpOnly` cookies), so the mock uses a bearer token. |
 | C-07 | The mock database lives in the browser. It is per-browser and is not shared between users or devices. |
@@ -259,7 +270,7 @@ The senior's answers to the eight open questions were all "go with your own sugg
 
 ### 6.2 Machine prerequisites
 
-- Node.js 20.19+ or 22.12+ (`node -v`), npm (`npm -v`), Git
+- Node.js 22.19+ (`node -v`; the tests' jsdom 30 fails to start on Node 20), npm (`npm -v`), Git
 - Editor: VS Code with ESLint, Prettier and Tailwind CSS IntelliSense extensions
 - Browser: Chrome or Edge with the **Redux DevTools** extension, plus Firefox for cross-browser checks
 
@@ -344,7 +355,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: "./src/test/setup.ts",
+    include: ["tests/**/*.test.{ts,tsx}"],
+    setupFiles: "./tests/setup.ts",
     css: false,
   },
 });
@@ -383,7 +395,6 @@ src/
 │   │   ├── authThunks.ts        # bootstrapSession, login, logout
 │   │   ├── authSelectors.ts
 │   │   ├── authSchemas.ts       # Zod schemas + inferred types
-│   │   ├── tokenStorage.ts
 │   │   ├── safeRedirect.ts
 │   │   ├── types.ts
 │   │   ├── components/          # LoginForm, SignupForm, ForgotForm, ResetForm,
@@ -408,23 +419,37 @@ src/
 │   └── toast/                   # ToastProvider, useToast
 ├── hooks/                       # shared hooks (e.g. useDocumentTitle)
 ├── lib/
-│   ├── http.ts                  # fetch wrapper
-│   ├── ApiError.ts
+│   ├── http.ts                  # fetch wrapper + setUnauthorizedHandler
+│   ├── ApiError.ts              # typed error, NestJS body parsing
+│   ├── getErrorMessage.ts       # any error -> user-facing sentence
+│   ├── tokenStorage.ts          # the only token storage (D-23)
+│   ├── cn.ts                    # className joiner
 │   ├── env.ts                   # Zod-validated env
 │   ├── messages.ts              # all user-facing copy
 │   └── paths.ts                 # route path constants
 ├── mocks/
 │   ├── browser.ts               # setupWorker
 │   ├── server.ts                # setupServer (tests)
-│   ├── handlers/                # authHandlers.ts, todosHandlers.ts
-│   ├── db.ts                    # in-memory db persisted to localStorage
-│   ├── mailbox.ts
-│   └── fixtures.ts              # seeded demo data
-├── test/
-│   ├── setup.ts
-│   └── renderWithProviders.tsx
+│   ├── handlers/                # authHandlers.ts, devHandlers.ts (D-26), index.ts; todosHandlers.ts in Phase 5
+│   ├── config.ts                # magic accounts, durations, rate limits, latency, apiUrl()
+│   ├── db.ts                    # in-memory db persisted to localStorage, resetMockDb()
+│   ├── seed.ts                  # magic accounts (demo todos in Phase 5)
+│   ├── authStore.ts             # users, sessions, single-use email tokens (no HTTP)
+│   ├── security.ts              # salted password hashes, random tokens (D-28)
+│   ├── rateLimit.ts             # sliding-window limiter
+│   ├── responses.ts             # NestJS error bodies, body validation, latency
+│   └── mailbox.ts
 ├── main.tsx
-└── index.css                    # @import "tailwindcss";
+├── styles/
+│   ├── theme.css                # design tokens: colours, font, type scale, radius, shadows, widths
+│   └── base.css                 # global element styles, focus ring, reduced motion
+└── index.css                    # @import "tailwindcss"; then the two style files
+tests/                           # all tests, mirroring src/ (D-29)
+├── setup.ts                     # jest-dom, the shared MSW server, reset after each test
+├── utils/
+│   └── renderWithProviders.tsx  # imported as "@tests/utils/renderWithProviders"
+├── app/ components/ features/ lib/ mocks/ pages/ styles/
+│   └── …                        # e.g. src/lib/http.ts -> tests/lib/http.test.ts
 public/
 └── mockServiceWorker.js         # generated by `npx msw init public`
 docs/
@@ -500,17 +525,20 @@ Responsibilities, in one place:
 
 1. Build the URL from `VITE_API_URL`.
 2. Send and parse JSON.
-3. Attach `Authorization: Bearer <token>` when a token exists (read from `tokenStorage`).
+3. Attach `Authorization: Bearer <token>` when a token exists (read from `tokenStorage`). Public endpoints pass `{ auth: false }` and send no token (D-24).
 4. Apply a request timeout (15 seconds, using an `AbortSignal`).
-5. Convert every failure into a typed `ApiError { status, message, code?, details? }`:
+5. Convert every failure into a typed `ApiError { status, message, code?, details?, retryAfter? }`:
    - non-2xx response, using the NestJS-style body (`message` may be a string or an array)
-   - network failure or timeout, with `status: 0`
-6. **Unauthorized handler:** call a registered callback on a `401` **only if the request carried a token** and **only once at a time**. The store registers this callback at startup (`setUnauthorizedHandler`), so `lib/` never imports from `app/`.
+   - network failure or timeout, with `status: 0` and the client codes `NETWORK_ERROR` / `TIMEOUT`
+   - a caller's own cancel (`signal`) is re-thrown as the browser's `AbortError`, not converted
+6. **Unauthorized handler:** call a registered callback on a `401` **only if the request carried a token**, **only if that token is still the current one** (a late reply must not end a newer session), and **only once per token**. The store registers this callback at startup (`setUnauthorizedHandler`), so `lib/` never imports from `app/`.
 7. Never log request bodies, passwords or tokens.
 
 Error-to-message mapping lives in one function (`getErrorMessage`), using the copy in `lib/messages.ts` (Appendix A).
 
 ### 7.6 `tokenStorage` module
+
+Location: `src/lib/tokenStorage.ts` (D-23).
 
 | Function | Behavior |
 |---|---|
@@ -699,7 +727,7 @@ Start the worker **before** rendering, and only when `VITE_USE_MOCK` is `true`, 
 async function start() {
   if (env.VITE_USE_MOCK) {
     const { worker } = await import("@/mocks/browser");
-    await worker.start({ onUnhandledRequest: "bypass" });
+    await worker.start({ onUnhandledFrame: "bypass" });
   }
   createRoot(document.getElementById("root")!).render(/* <Providers>...</Providers> */);
 }
@@ -906,14 +934,14 @@ Each row should be handled and, where a test is listed, covered by it. Section 1
 
 - **Test behavior, not implementation.** Query the way a user would: by role, label and visible text. Avoid test IDs unless there is no accessible alternative.
 - **Use the real stack where cheap:** real Redux store, real router, MSW for the network. Avoid mocking `fetch`, `axios` or your own modules.
-- **Fail on unhandled requests** (`onUnhandledRequest: "error"`), so a missing handler is noticed immediately.
+- **Fail on unhandled requests** (`onUnhandledFrame: "error"`; MSW 2 called it `onUnhandledRequest`), so a missing handler is noticed immediately.
 - **Each test is independent.** Reset the mock db, `localStorage` and handlers after every test.
 - **Cover the edge cases that matter** (section 11), not every line.
 - **No snapshot tests** for UI.
 
 ### 13.2 Test setup
 
-- `src/test/setup.ts`:
+- `tests/setup.ts`:
 
 ```ts
 import "@testing-library/jest-dom/vitest";
@@ -921,7 +949,7 @@ import { afterAll, afterEach, beforeAll } from "vitest";
 import { server } from "@/mocks/server";
 import { resetMockDb } from "@/mocks/db";
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterEach(() => {
   server.resetHandlers();
   resetMockDb();
@@ -939,7 +967,7 @@ HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
 ```
 
 - **Store factory:** export `makeStore(preloadedState?)` from `app/store.ts` (and `export const store = makeStore()`), and derive `AppStore`, `RootState` and `AppDispatch` from it. Tests create a **fresh store per test**.
-- `src/test/renderWithProviders.tsx`: renders a component inside a fresh store, a memory router (with a chosen initial URL) and the toast provider, and returns the store plus a `userEvent` instance. Optionally wrap in `StrictMode` (needed for `T-C06`).
+- `tests/utils/renderWithProviders.tsx`: renders a component inside a fresh store, a memory router (with a chosen initial URL) and the toast provider, and returns the store plus a `userEvent` instance. Optionally wrap in `StrictMode` (needed for `T-C06`).
 - Use `vi.useFakeTimers()` for cooldown timers, and `userEvent.setup({ advanceTimers: vi.advanceTimersByTime })`.
 
 ### 13.3 Test catalogue
@@ -953,13 +981,14 @@ HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
 | T-U03 | `safeRedirect`: accepts `/todos`, rejects `//evil.com`, `https://x.com`, `/login` |
 | T-U04 | Date helpers: parse date-only without time zone shift, `isOverdue`, formatting |
 | T-U05 | `getErrorMessage` and `ApiError` mapping; env validation |
-| T-U06 | `http` client: attaches token, maps errors, network failure, timeout, `401` handler only when a token was sent, not for `/auth/login`, only once at a time |
+| T-U06 | `http` client: attaches token, maps errors, network failure, timeout, `401` handler only when the current token was sent, not for `auth: false` requests (login), once per token |
 | T-U07 | `tokenStorage`: set, get, clear, blocked storage fallback, `storage` event subscription |
 | T-U08 | Auth slice and thunks: bootstrap (success, `401`, network error), login, logout (even if the request fails) |
 | T-U09 | Root reducer resets every slice on `sessionEnded` |
 | T-U10 | Todos slice and thunks: fetch (and the `condition`), create, update, delete, `404` handling, `pendingById` |
 | T-U11 | Selectors (counts, items) |
 | T-U12 | `useFilteredTodos`: each filter, invalid `?status=` |
+| T-U13 | Theme tokens: every text and background pair meets WCAG AA contrast (4.5:1 text, 3:1 UI) |
 
 **Component tests** (React Testing Library + MSW)
 
@@ -1130,10 +1159,10 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 **Goal:** everyone agrees on what is being built.
 
 - [ ] Send this plan, or a summary of sections 2 to 4, to your senior. Confirm the deadline and whether one PR is acceptable.
-- [ ] Create the GitHub repository. Add a short README placeholder.
-- [ ] Create the feature branch `feature/todo-auth-frontend`.
-- [ ] Create `docs/api-contract.md` from section 8 of this plan.
-- [ ] Copy the decision log (section 2) into the README, or link to it.
+- [ ] Create the GitHub repository. Add a short README placeholder. (README done, local git repo created; GitHub remote still to add)
+- [x] Create the feature branch `feature/todo-auth-frontend`.
+- [x] Create `docs/api-contract.md` from section 8 of this plan.
+- [x] Copy the decision log (section 2) into the README, or link to it.
 
 **Exit criteria:** the contract file exists, and your senior has seen the plan.
 
@@ -1143,20 +1172,20 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 
 **Goal:** an empty app that builds, lints, type-checks and tests cleanly.
 
-- [ ] Check `node -v` (20.19+ or 22.12+). Install a newer Node if needed.
-- [ ] Scaffold with Vite (section 6.3). Choose plain TypeScript, not the React Compiler variant.
-- [ ] Run `npm install`, then `npm run dev`, and confirm the starter page opens.
-- [ ] Set up `.gitignore` (add `.env` and `.env.local`). Make the first commit.
-- [ ] Install runtime and development dependencies (section 6.3).
-- [ ] Configure TypeScript (section 6.6): strict flags, the `@/` alias, `vitest/globals` types.
-- [ ] Configure `vite.config.ts` with React, Tailwind and Vitest (section 6.6).
-- [ ] Add `@import "tailwindcss";` to `src/index.css` and confirm a Tailwind class works.
-- [ ] Add `eslint-plugin-jsx-a11y` to the ESLint config. Add Prettier, `eslint-config-prettier`, and a `.prettierrc`.
-- [ ] Add the npm scripts from section 6.5.
-- [ ] Create `.env.example` and `.env.demo`, and the Zod env validation module `src/lib/env.ts`.
-- [ ] Create `src/test/setup.ts` (section 13.2) with a single trivial test, to confirm Vitest runs.
-- [ ] Create the empty folder skeleton (section 7.1).
-- [ ] Delete the Vite starter content (logo, counter demo, `App.css`).
+- [x] Check `node -v` (20.19+ or 22.12+). Install a newer Node if needed.
+- [x] Scaffold with Vite (section 6.3). Choose plain TypeScript, not the React Compiler variant.
+- [x] Run `npm install`, then `npm run dev`, and confirm the starter page opens.
+- [x] Set up `.gitignore` (add `.env` and `.env.local`). Make the first commit.
+- [x] Install runtime and development dependencies (section 6.3).
+- [x] Configure TypeScript (section 6.6): strict flags, the `@/` alias, `vitest/globals` types.
+- [x] Configure `vite.config.ts` with React, Tailwind and Vitest (section 6.6).
+- [x] Add `@import "tailwindcss";` to `src/index.css` and confirm a Tailwind class works.
+- [x] Add `eslint-plugin-jsx-a11y` to the ESLint config. Add Prettier, `eslint-config-prettier`, and a `.prettierrc`.
+- [x] Add the npm scripts from section 6.5.
+- [x] Create `.env.example` and `.env.demo`, and the Zod env validation module `src/lib/env.ts`.
+- [x] Create `tests/setup.ts` (section 13.2) with a single trivial test, to confirm Vitest runs.
+- [x] Create the empty folder skeleton (section 7.1).
+- [x] Delete the Vite starter content (logo, counter demo, `App.css`).
 
 **Commits:** items 1 to 4 from section 14.3.
 
@@ -1170,36 +1199,72 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 
 **Goal:** everything the features will stand on.
 
+**2.0 Theme and visual foundation** (do this first: every component in 2.4 uses these tokens)
+
+*Font*
+- [x] Install self-hosted Roboto (`@fontsource-variable/roboto`, D-19) and import it once in `main.tsx`.
+- [x] Set `--font-sans` to Roboto with a system font fallback stack.
+
+*Colour*
+- [x] Reset Tailwind's default palette so only our tokens exist (D-20).
+- [x] Surface and text tokens: `canvas`, `surface`, `surface-muted`, `fg`, `fg-muted`.
+- [x] Border tokens: `border` (decorative) and `border-strong` (input outlines, 3:1 contrast).
+- [x] One primary colour (`primary`, `primary-hover`, `primary-subtle`, `on-primary`) for actions, links, focus and info.
+- [x] Status tokens: `danger` (errors, delete, Overdue) and `success`, each with `-hover`/`-subtle` where used.
+- [x] Check every text and background pair meets WCAG AA (4.5:1 text, 3:1 UI). Use automated test T-U13.
+
+*Typography*
+- [x] A fixed type scale (`xs` to `3xl`), each step with its own line height. The default is 16 px body text, which also stops iOS from zooming into inputs.
+- [x] Base heading styles for `h1` to `h3`, so pages get consistent headings without repeating classes.
+
+*Shape, depth and layout*
+- [x] Radius tokens: `rounded-control` (buttons, inputs), `rounded-card`.
+- [x] Shadow tokens: `shadow-card`, `shadow-dialog`.
+- [x] Width tokens: `max-w-content` (todos page), `max-w-auth` (auth card).
+- [x] Touch-target token `touch` (44 px), for example `min-h-touch` (section 10.2).
+
+*Global behaviour*
+- [x] Base layer: page background, text colour, font smoothing, `color-scheme`, text selection colour.
+- [x] One global `:focus-visible` ring, visible on every interactive element (NFR-A1).
+- [x] `prefers-reduced-motion`: switch off animations and transitions globally (NFR-A2).
+
+*Visual identity*
+- [x] Replace the Vite favicon with an app icon in the primary colour. Add `theme-color` to `index.html`.
+- [x] Temporary theme preview in `App.tsx` to check the tokens by eye (the router replaces it in 2.3).
+- [x] **Tests:** T-U13.
+
 **2.1 Library layer**
-- [ ] `lib/ApiError.ts`: a typed error class with `status`, `message`, `code?`, `details?`.
-- [ ] `lib/http.ts`: base URL, JSON handling, token header, timeout, error conversion, the `401` unauthorized handler (section 7.5).
-- [ ] `lib/messages.ts`: all user-facing copy (Appendix A).
-- [ ] `lib/paths.ts`: route path constants.
-- [ ] `getErrorMessage` helper.
-- [ ] **Tests:** T-U05, T-U06.
+- [x] `lib/ApiError.ts`: a typed error class with `status`, `message`, `code?`, `details?`, `retryAfter?`, plus `fromResponse` (NestJS body) and `network()`/`timeout()`.
+- [x] `lib/tokenStorage.ts` (moved here from Phase 4.1, D-23): get, set, clear, subscribe, memory fallback. **Tests:** T-U07.
+- [x] `lib/http.ts`: base URL, JSON handling, token header, `auth: false` (D-24), timeout, cancel, error conversion, the `401` unauthorized handler (section 7.5).
+- [x] `lib/messages.ts`: user-facing copy (Appendix A); grows with each feature.
+- [x] `lib/paths.ts`: route path constants.
+- [x] `lib/getErrorMessage.ts`: maps any error to copy, including the 429 wait time (EC-10).
+- [x] `lib/cn.ts`: className joiner for components.
+- [x] **Tests:** T-U05, T-U06, T-U07.
 
 **2.2 Store**
-- [ ] `app/actions.ts` with `sessionEnded`.
-- [ ] `app/store.ts`: a `makeStore()` factory, the root reducer with reset-on-`sessionEnded`, and `RootState`, `AppDispatch`, `AppStore` types.
-- [ ] `app/hooks.ts`: `useAppDispatch` and `useAppSelector` with `.withTypes`.
-- [ ] `app/createAppAsyncThunk.ts` with `withTypes` (`state`, `dispatch`, `rejectValue: string`).
-- [ ] Register the unauthorized handler from the store setup.
-- [ ] **Tests:** T-U09.
+- [x] `app/actions.ts` with `sessionEnded`.
+- [x] `app/store.ts`: a `makeStore()` factory, the root reducer with reset-on-`sessionEnded`, and `RootState`, `AppDispatch`, `AppStore` types.
+- [x] `app/hooks.ts`: `useAppDispatch` and `useAppSelector` with `.withTypes`.
+- [x] `app/createAppAsyncThunk.ts` with `withTypes` (`state`, `dispatch`, `rejectValue: string`).
+- [x] Register the unauthorized handler from the store setup. (Done in `app/sessionListeners.ts`, called once from `main.tsx`, not inside `store.ts`.)
+- [x] **Tests:** T-U09.
 
 **2.3 Router and layouts**
-- [ ] `app/router.tsx` with all routes from section 7.3. Pages can be placeholders.
-- [ ] `AuthLayout` and `AppLayout`, each with an `<Outlet />` and an `errorElement`.
-- [ ] Stub `ProtectedRoute` and `PublicOnlyRoute`.
-- [ ] `NotFoundPage` and an error boundary fallback.
-- [ ] `app/Providers.tsx`: `StrictMode`, the Redux `Provider`, the toast provider.
+- [x] `app/router.tsx` with all routes from section 7.3. Pages can be placeholders.
+- [x] `AuthLayout` and `AppLayout`, each with an `<Outlet />` and an `errorElement`.
+- [ ] Stub `ProtectedRoute` and `PublicOnlyRoute`. (Skipped by decision: `AppLayout` checks the session for `/todos`; no general guards yet.)
+- [x] `NotFoundPage` and an error boundary fallback.
+- [x] `app/Providers.tsx`: `StrictMode`, the Redux `Provider`, the toast provider.
 
 **2.4 Shared UI kit** (section 7.10)
-- [ ] `Button`, `TextField`, `TextArea`, `PasswordField`.
-- [ ] `Alert`, `Spinner`, `SplashScreen`, `EmptyState`.
-- [ ] `Dialog`, `ConfirmDialog`, `ToastProvider` and `useToast`.
-- [ ] **Tests:** T-C01, T-C02.
+- [x] `Button`, `TextField`, `TextArea`, `PasswordField`.
+- [ ] `Alert`, `Spinner`, `SplashScreen`, `EmptyState`. (Done except `SplashScreen`: `AppLayout` shows a labelled spinner while the session is checked.)
+- [x] `Dialog`, `ConfirmDialog`, `ToastProvider` and `useToast`.
+- [x] **Tests:** T-C01, T-C02.
 
-**Commits:** items 5 to 9 from section 14.3. Open a **draft PR** at the end of this phase.
+**Commits:** `feat(ui): add theme tokens, Roboto font and base styles` for 2.0, then items 5 to 9 from section 14.3. Open a **draft PR** at the end of this phase.
 
 **Exit criteria:** you can navigate between placeholder pages, the UI kit renders correctly on a scratch page, and `npm run check` passes.
 
@@ -1211,16 +1276,16 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 
 **Goal:** a believable backend that follows the contract exactly.
 
-- [ ] Run `npx msw init public` and commit `public/mockServiceWorker.js`.
-- [ ] `mocks/db.ts`: users, todos, tokens, mailbox, persistence to `localStorage`, `resetMockDb()`.
-- [ ] Seed `demo@example.com` with five todos, and the other magic accounts (section 9.5).
-- [ ] `mocks/mailbox.ts` and the `DevMailboxPage` (mock mode only).
-- [ ] `mocks/handlers/authHandlers.ts`: all eight auth endpoints, every error from the contract, the NestJS-style error body with `code`, latency, rate limiting, single-use tokens, token expiry.
-- [ ] `mocks/handlers/todosHandlers.ts`: all five todo endpoints, ownership by token, the `[fail]` magic title.
-- [ ] Validate request bodies in the mock using the same rules as the client.
-- [ ] `mocks/browser.ts` and `mocks/server.ts`.
-- [ ] Gate the worker in `main.tsx` with a dynamic import behind `VITE_USE_MOCK` (section 9.3). Only register the `/dev/mailbox` route in mock mode.
-- [ ] Update `docs/api-contract.md` if you changed anything.
+- [x] Run `npx msw init public --save` and commit `public/mockServiceWorker.js` (D-25).
+- [x] `mocks/db.ts`: users, tokens, mailbox, persistence to `localStorage`, `resetMockDb()`. (Todos are added in Phase 5.)
+- [x] Seed the magic accounts (section 9.5). (The demo user's five todos come with Phase 5.)
+- [x] `mocks/mailbox.ts` and the `DevMailboxPage` (mock mode only, via the dev endpoints of D-26).
+- [x] `mocks/handlers/authHandlers.ts`: all eight auth endpoints, every error from the contract, the NestJS-style error body with `code`, latency, rate limiting, single-use tokens, token expiry.
+- [x] `mocks/handlers/todosHandlers.ts`: all five todo endpoints, ownership by token, the `[fail]` magic title.
+- [x] Validate request bodies in the mock using the same rules as the client (shared field rules from `authSchemas.ts`).
+- [x] `mocks/browser.ts` and `mocks/server.ts`; `tests/setup.ts` runs the shared server for every test.
+- [x] Gate the worker in `main.tsx` with a dynamic import behind `VITE_USE_MOCK` (section 9.3), with a 10 s fallback so the app never stays blank. Only register the `/dev/mailbox` route in mock mode.
+- [x] Update `docs/api-contract.md` if you changed anything. (No contract change; the `/__dev` endpoints are mock-only, D-26.)
 
 **Commits:** items 10 and 11 from section 14.3.
 
@@ -1235,41 +1300,42 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 **Goal:** all authentication flows, complete and secure. Build in this order, because each step depends on the last.
 
 **4.1 Foundations**
-- [ ] `authSchemas.ts`: login, signup, forgot, reset (the password rule defined once). **Tests:** T-U01.
-- [ ] `types.ts`, `authApi.ts`, `tokenStorage.ts` (**Tests:** T-U07), `safeRedirect.ts` (**Tests:** T-U03).
-- [ ] `authSlice.ts`, `authThunks.ts` (`bootstrapSession`, `login`, `logout`), `authSelectors.ts`. **Tests:** T-U08.
+- [x] `authSchemas.ts`: login, signup, email request, reset (the password rule defined once). **Tests:** T-U01.
+- [x] `types.ts`, `authApi.ts` (public calls use `{ auth: false }`; contract-tested against the mock).
+- [ ] `safeRedirect.ts` (**Tests:** T-U03). (`tokenStorage` was built in 2.1, D-23.)
+- [x] `authSlice.ts`, `authThunks.ts` (`bootstrapSession`, `login`, `logout`), `authSelectors.ts`. **Tests:** T-U08.
 
 **4.2 Signup** (FR-A01, FR-A03)
-- [ ] `SignupForm` with React Hook Form and `zodResolver`. A `409` becomes a field error.
-- [ ] `CheckEmailPanel` with Resend and the cooldown hook `useResendCooldown`.
-- [ ] **Tests:** T-C03, T-C04.
+- [x] `SignupForm` with React Hook Form and `zodResolver`. A `409` becomes a field error.
+- [x] `CheckEmailPanel` with Resend and the cooldown hook `useResendCooldown`.
+- [x] **Tests:** T-C03, T-C04.
 
 **4.3 Verify email** (FR-A02)
-- [ ] `VerifyEmailPage` with all states. **Guard against the Strict Mode double call** (a ref flag), because the token is single-use.
-- [ ] A "send me a new link" form for expired or invalid tokens.
-- [ ] **Tests:** T-C06.
+- [x] `VerifyEmailPage` with all states. **Guard against the Strict Mode double call** (a ref flag), because the token is single-use.
+- [x] A "send me a new link" form for expired or invalid tokens.
+- [x] **Tests:** T-C06.
 
 **4.4 Login** (FR-A04)
 - [ ] `LoginForm`: generic error for `401`, resend action for `403 EMAIL_NOT_VERIFIED`, message for `429`.
 - [ ] Redirect to the intended page through `safeRedirect`.
-- [ ] Show the success message from navigation state.
+- [x] Show the success message from navigation state (`loginNotice.ts`: passwordUpdated, loggedOut, sessionExpired).
 - [ ] **Tests:** T-C05.
 
 **4.5 Session, guards and logout** (FR-A05, FR-A06, FR-A09)
-- [ ] Dispatch `bootstrapSession` at startup. Build `SplashScreen` and the bootstrap retry screen.
-- [ ] Implement `ProtectedRoute` and `PublicOnlyRoute` (section 7.8). Check `AppLayout` shows the user and a **Log out** button.
-- [ ] `logout` thunk: best-effort API call, always clear the token, dispatch `sessionEnded`, navigate to `/login`.
-- [ ] **Tests:** T-C09, T-I03.
+- [ ] Dispatch `bootstrapSession` at startup. Build `SplashScreen` and the bootstrap retry screen. (Done: `startSession` runs it once at startup; `AppLayout` shows a spinner and the retry screen. No separate `SplashScreen` component.)
+- [ ] Implement `ProtectedRoute` and `PublicOnlyRoute` (section 7.8). Check `AppLayout` shows the user and a **Log out** button. (Partly: `AppLayout` shows the user and **Log out** and redirects logged-out visitors; `ProtectedRoute`/`PublicOnlyRoute` skipped by decision.)
+- [x] `logout` thunk: best-effort API call, always clear the token, dispatch `sessionEnded`, navigate to `/login`.
+- [ ] **Tests:** T-C09, T-I03. (T-I03 covered by `tests/app/layouts/AppLayout.test.tsx`; T-C09 needs the guards.)
 
 **4.6 Forgot and reset password** (FR-A07, FR-A08)
-- [ ] `ForgotPasswordPage` with the always-generic message and a cooldown.
-- [ ] `ResetPasswordPage` with token states. Success redirects to Login with a message.
-- [ ] **Tests:** T-C07, T-C08, T-I06.
+- [x] `ForgotPasswordPage` with the always-generic message and a cooldown.
+- [x] `ResetPasswordPage` with token states. Success redirects to Login with a message.
+- [x] **Tests:** T-C07, T-C08, T-I06.
 
 **4.7 Session expiry and cross-tab sync** (FR-A10)
-- [ ] The unauthorized handler dispatches `sessionEnded` once, with a single message.
-- [ ] `tokenStorage.subscribe` handles other tabs' login and logout.
-- [ ] **Tests:** T-I04, T-I07, T-I01.
+- [x] The unauthorized handler dispatches `sessionEnded` once, with a single message.
+- [ ] `tokenStorage.subscribe` handles other tabs' login and logout. (Logout and token replacement in another tab end this tab's session; login in another tab (EC-28) is not handled yet.)
+- [ ] **Tests:** T-I04, T-I07, T-I01. (Partly: one 401 ending the session is tested in `AppLayout.test.tsx`, and the parallel-401 "once" rule only at unit level in `http.test.ts` (T-U06). T-I07 covers cross-tab logout but not cross-tab login (EC-28). T-I01 is in `authFlows.test.tsx`.)
 
 **Commits:** items 12 to 18 from section 14.3.
 
@@ -1291,23 +1357,23 @@ The estimates assume a learner's pace. If your deadline is tighter, trim items f
 **Goal:** a complete, polished todo module.
 
 **5.1 Data layer**
-- [ ] `types.ts`, `todoSchemas.ts`, `dates.ts` (**Tests:** T-U02, T-U04).
-- [ ] `todosApi.ts`, `todosThunks.ts` with `condition` on `fetchTodos`, `todosSlice.ts` with `pendingById`, `todosSelectors.ts`. **Tests:** T-U10, T-U11.
-- [ ] `useFilteredTodos` hook. **Tests:** T-U12.
+- [x] `types.ts`, `todoSchemas.ts`, `dates.ts` (**Tests:** T-U02, T-U04).
+- [x] `todosApi.ts`, `todosThunks.ts` with `condition` on `fetchTodos`, `todosSlice.ts` with `pendingById`, `todosSelectors.ts`. **Tests:** T-U10, T-U11.
+- [x] `useFilteredTodos` hook. **Tests:** T-U12.
 
 **5.2 Page and list**
-- [ ] `TodosPage`: header, add form, filters, list.
-- [ ] `TodoFilters` (writes `?status=`), `TodoList` with loading, error, empty and filtered-empty states. **Tests:** T-C12.
-- [ ] Fetch only when the session is `authenticated`.
+- [x] `TodosPage`: header, add form, filters, list.
+- [x] `TodoFilters` (writes `?status=`), `TodoList` with loading, error, empty and filtered-empty states. **Tests:** T-C12.
+- [x] Fetch only when the session is `authenticated`.
 
 **5.3 Create, edit, toggle, delete**
-- [ ] `TodoForm` (create) and `EditTodoDialog` (edit) sharing one form. **Tests:** T-C10.
-- [ ] `TodoItem`: checkbox toggle, edit button, delete button, overdue badge, controls disabled while pending. **Tests:** T-C11.
-- [ ] `ConfirmDialog` for delete that names the todo.
-- [ ] Toasts for success and for failures. Treat `404` on update or delete as "already gone".
+- [x] `TodoForm` (create) and `EditTodoDialog` (edit) sharing one form. **Tests:** T-C10.
+- [x] `TodoItem`: checkbox toggle, edit button, delete button, overdue badge, controls disabled while pending. **Tests:** T-C11.
+- [x] `ConfirmDialog` for delete that names the todo.
+- [x] Toasts for success and for failures. Treat `404` on update or delete as "already gone".
 
 **5.4 Isolation**
-- [ ] Confirm todos reset on logout and on `401`. **Tests:** T-I05, T-I02.
+- [x] Confirm todos reset on logout and on `401`. **Tests:** T-I05, T-I02.
 
 **Commits:** items 19 to 21 from section 14.3.
 
